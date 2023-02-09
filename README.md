@@ -1,7 +1,5 @@
 # Ghosts Of Epochs Past (beta)
 
-
-
 ## Demographic
 
 The demographic of this dApp is primarily being aimed at newbies in blockchain/EVM related security research, looking to improve and refresh their knowledge.
@@ -68,16 +66,74 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 
 ## Known Issues / Bugs:
 
-* Edge cases occur in the sorting of submitted answers. As on-chain verification is done using keccak256 hashing, answers must be submitted in ascending order. To fix, unselect then reselect in ascending order.
+* **Resolved**: Edge cases occur in the sorting of submitted answers. As on-chain verification is done using keccak256 hashing, answers must be submitted in ascending order. To fix, unselect then reselect in ascending order.
 
-* Edge cases occur in the performance calculation where it may be inaccurate, to fix unselect and then reselect the problem answer(s), off-chain submit should now be accurate to submit on-chain.
+* **Resolved**: Edge cases occur in the performance calculation where it may be inaccurate, to fix unselect and then reselect the problem answer(s), off-chain submit should now be accurate to submit on-chain.
 
 * Please report any issues that you find either via the issues tab on this repo or through any other means.
 
 
-## TODOS:
+# Structured Roadmap
 
-* Add section to the right of 'About' in profile page, a trophy case for completed race NFTs.
+* Beta Release: Feb 8th 2023
+* Alchemy Submission: Feb 9th/10th/11th 2023
+* CyberConnect Hackathon Registration: Feb 9th 2023
+
+# Technical Roadmap
+
+* * Addition of all current epochs from secureum
+* * Addition of CyberConnect for social features:
+* * Addition of Security Related Content Section:
+
+* * *  User Identity ([ccProfileNFT](https://docs.cyberconnect.me/core-concepts/cc-profile))
+* * * Connections ([SubscribeNFT](https://docs.cyberconnect.me/core-concepts/subscribe-nft))
+* * * EssenceNFT ([EssenceNFT](https://docs.cyberconnect.me/core-concepts/essence-nft))
+* * * Social Feeds + Interactions 
+* * * PVP (player vs player)
+* * * Security Calendar
+* * * Rank System
+* * * Achievements
+* * * Security Blog Content
+* * * More??
+
+
+## Implementation
+* CyberConnect provided example of a profile in use - https://link3.to/shiyu
+* **User Identity**: A Ghosts user identity will be made up of:
+* * Per Race Performance
+* * Overall Race Performance
+* * Social Following/Followers (Connections)
+* * Rank (inside Ghosts app)
+* * Account Meta (profile avatar & banner, name, job, bio, social links, etc..)
+* * Ghosts NFT display
+* * PVP Stats
+* * Achievements
+* **Connections**: A Ghost's identity will be made up of:
+* * User Follow User (non-NFT method)
+* * Participation in activites and communities
+* **EssenceNFT**: Content NFTs will be used in the following ways:
+* * As these will be tied to a user identity the user will own the content.
+* * A user will be able to create bespoke security related content and share it with the Ghosts community.
+* * A user will be able to submit audit reports as part of activities and have those tied to their identity.
+
+# Order of Importance
+1. #### Design structure for integrating CyberConnect into Ghosts.
+2. #### Design the profile structure (on-chain/off-chain) for the platform.
+3. #### Implement account signup using CC ProfileNFT's.
+4. #### Implement "Basic Profile".
+5. #### Design structure (on-chain/off-chain) for "Connections".
+6. #### Implement "Basic Profile" social features.
+7. #### Implement "Connections" social features.
+8. #### Design structure (on-chain/off-chain) for "EssenceNFT" content.
+9. #### Design security related content ux/ui.
+10. #### Implement all security related content.
+11. #### Implement all "EssenceNFT" content.
+12. #### Implement "Full Profile".
+13. #### Implement "Rank" social feature.
+14. #### Implement "Achievements" social feature.
+15. #### Implement "PvP" social feature.
+16. #### Implement "Feed" social feature.
+17. #### Implement "Security Calendar" social feature.
 
 ## Active Pages:
 
