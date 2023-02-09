@@ -66,10 +66,6 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 
 ## Known Issues / Bugs:
 
-* **Resolved**: Edge cases occur in the sorting of submitted answers. As on-chain verification is done using keccak256 hashing, answers must be submitted in ascending order. To fix, unselect then reselect in ascending order.
-
-* **Resolved**: Edge cases occur in the performance calculation where it may be inaccurate, to fix unselect and then reselect the problem answer(s), off-chain submit should now be accurate to submit on-chain.
-
 * Please report any issues that you find either via the issues tab on this repo or through any other means.
 
 
