@@ -17,6 +17,10 @@ contract GhostsTest is Test {
         user2 = vm.addr(0x12);
         user3 = vm.addr(0x13);
         user4 = vm.addr(0x14);
+        vm.deal(user1, 10 ether);
+        vm.deal(user2, 10 ether);
+        vm.deal(user3, 10 ether);
+        vm.deal(user4, 10 ether);
         vm.startPrank(user1);
         
         bytes32[] memory answers = new bytes32[](10);
@@ -29,18 +33,29 @@ contract GhostsTest is Test {
     }
 
     function test_CreateUser() external {
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng");
+        string[] memory hashes = new string[](2);
+        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
+        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
 
-        (address addr, uint raceId, uint comTask, uint perf, bytes32 nickname,bytes32 title, bytes32 handle,  string memory bio) = ghosts.userMap(user1);
+
+        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
+
+        (address addr, uint raceId, uint comTask, uint perf, uint ccID) = ghosts.userMap(user1);
 
         assertEq(user1, addr);
+        assertTrue(ccID != 0);
+        console.log("ccId", ccID);
     }
 
     function test_StartNextRace() external {
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng");
+        string[] memory hashes = new string[](2);
+        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
+        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
+
+        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
         ghosts.startNextRace();
 
-        (address addr, uint raceId, uint comTask, uint perf, bytes32 nickname,bytes32 title, bytes32 handle,  string memory bio) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint ccId) = ghosts.userMap(user1);
 
         assertEq(raceId, 0);
 
@@ -48,7 +63,11 @@ contract GhostsTest is Test {
     }
 
     function test_SubmitRace() external {
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng");
+        string[] memory hashes = new string[](2);
+        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
+        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
+
+        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
         ghosts.startNextRace();
         string memory tokenURI = ghosts.tokenURI(1);
 
@@ -64,7 +83,7 @@ contract GhostsTest is Test {
 
         string memory uriToken = ghosts.tokenURI(2);
 
-        (address addr, uint raceId, uint comTask, uint perf, bytes32 nickname,bytes32 title, bytes32 handle,  string memory bio) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint ccId) = ghosts.userMap(user1);
 
         assertEq(uriToken, "ipfs://QmPKJEfJpDmBTYjCWzQeRfrUqTJfW9bCgZWNyo93VCFVEK/WarmUpNFT2.json");
         assertEq( ghosts.balanceOf(user1), 2);
@@ -120,7 +139,11 @@ contract GhostsTest is Test {
         address userAddress
         ) = ghosts.finalRaceNfts(0);
 
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng");
+        string[] memory hashes = new string[](2);
+        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
+        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
+
+        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
         ghosts.startNextRace();
         string memory tokenURI = ghosts.tokenURI(1);
 
@@ -149,13 +172,6 @@ contract GhostsTest is Test {
         assertEq(ghosts.balanceOf(user2), 0);
     }
 
-    function test_EditUser() external {
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng");
-        (,,,,,,, string memory bio) = ghosts.userMap(user1);
-        ghosts.editUser("Keyrxng", "even more awesome bio", "Web3 Pro", "@Keyrxng");
-        (,,,,,,, string memory bio1) = ghosts.userMap(user1);
 
-        assertTrue(keccak256(abi.encodePacked(bio1)) != keccak256(abi.encodePacked(bio)));
-    }
 
 }
