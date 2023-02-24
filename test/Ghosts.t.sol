@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "./mocks/Ghosts.sol";
+import "../src/Ghosts.sol";
 
 contract GhostsTest is Test {
     Ghosts public ghosts;
@@ -39,7 +39,7 @@ contract GhostsTest is Test {
         hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
 
 
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
+        ghosts.createUser("Keyrxng", hashes);
 
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
 
@@ -53,7 +53,7 @@ contract GhostsTest is Test {
         hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
         hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
 
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
+        ghosts.createUser("Keyrxng", hashes);
         ghosts.startNextRace();
 
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
@@ -68,7 +68,7 @@ contract GhostsTest is Test {
         hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
         hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
 
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
+        ghosts.createUser("Keyrxng", hashes);
         ghosts.startNextRace();
         string memory tokenURI = ghosts.tokenURI(1);
 
@@ -144,7 +144,7 @@ contract GhostsTest is Test {
         hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
         hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
 
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
+        ghosts.createUser("Keyrxng", hashes);
         ghosts.startNextRace();
         string memory tokenURI = ghosts.tokenURI(1);
 
@@ -179,7 +179,7 @@ contract GhostsTest is Test {
         hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
 
 
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
+        ghosts.createUser("Keyrxng", hashes);
         ghosts.startNextRace();
 
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
@@ -190,6 +190,7 @@ contract GhostsTest is Test {
         assertEq(oldUri, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/WarmUpNFT1.json");
         assertEq(newUri, "www.ipfs.com/WarmUpNFT1.json");
     }
+    
 
 
 
