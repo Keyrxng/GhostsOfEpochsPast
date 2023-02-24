@@ -132,17 +132,6 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 16. #### Implement "Feed" social feature.
 17. #### Implement "Security Calendar" social feature.
 
-## Active Pages:
-
-* **home** www.url.com || /pages/index.js
-
-* **dashboard** www.url.com/dashboard || /pages/dashboard/index.js
-
-* **Profile** www.url.com/dashboard/profile || /pages/dashboard/profile.js
-
-* **[raceId]** www.url.com/dashboard/races/[raceId] || /pages/dashboard/races/[raceId].js
-
-
 <br/>
 
 
