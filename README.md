@@ -6,7 +6,7 @@ The demographic of this dApp is primarily being aimed at newbies in blockchain/E
 
 ## Solution Description
 
-Accessing the Secureum and other security related materials that aren't yet in this build is all free of charge in the discord server, however, the answers are exposed and the burden of proof is on the students to ensure that they are engaged, completing the challenge and obtaining the prize of knowledge. This provides little mental stimuli and incentive to hide the answers (even still, you've seen them now) and test yourself. This is where we come in, with *Ghosts Of Epochs Past*, a dApp which attempts to provide more incentice to learn from previous epochs as opposed to *scannning the answers* for a test you haven't done yet.
+Accessing the Secureum and other security related materials that aren't yet in this build is all free of charge in the discord server, however, the answers are exposed and the burden of proof is on the students to ensure that they are engaged, completing the challenge and obtaining the prize of knowledge. This provides little mental stimuli and incentive to hide the answers (even still, you've seen them now) and test yourself. This is where we come in, with *Ghosts Of Epochs Past*, a dApp which attempts to provide more incentive to learn from previous epochs as opposed to *scannning the answers* for a test you haven't done yet.
 
 ## How We Solve It?
 
