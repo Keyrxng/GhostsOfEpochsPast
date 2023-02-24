@@ -232,6 +232,7 @@ library DataTypes {
     }
 
     struct SubscribeParams {
+        address subscriber;
         uint256[] profileIds;
     }
 

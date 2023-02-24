@@ -82,6 +82,43 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         tokenBaseURI = "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/";
     }
 
+    /////////////////////////////////
+    ///                           ///
+    ///          GETTERS          ///
+    ///                           ///
+    /////////////////////////////////
+
+    function ccGetMetadata(uint profileId) public view returns (string memory) {
+        return ProfileNFT.getMetadata(profileId);
+    }
+
+    function ccGetAvatar(uint profileId) public view returns (string memory) {
+        return ProfileNFT.getAvatar(profileId);
+    }
+
+    function ccGetSubNFTAddr(uint profileId) public view returns (address) {
+        return ProfileNFT.getSubscribeNFT(profileId);
+    }
+
+    function ccGetSubURI(uint profileId) public view returns (string memory) {
+        return ProfileNFT.getSubscribeNFTTokenURI(profileId);
+    }
+
+    function ccGetEssNFTAddr(uint profileId, uint essId) public view returns (address) {
+        return ProfileNFT.getEssenceNFT(profileId, essId);
+    }
+
+    function ccGetEssURI(uint profileId, uint essId) public view returns (string memory) {
+        return ProfileNFT.getEssenceNFTTokenURI(profileId, essId);
+    }
+
+
+    /////////////////////////////////
+    ///                           ///
+    ///     External Functions    ///
+    ///                           ///
+    /////////////////////////////////
+
     /**
         * @dev relies on the owner supplying the correct length of the current supply of race content (mapping len)
         * @param races of race content hashes
@@ -105,13 +142,10 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     /**
         * @param uri of new IPFS URI "ipfs://hash..../"
      */
-
     function setBaseURI(string calldata uri) external onlyOwner {
         tokenBaseURI = uri;
     }
-    function _baseURI() internal view override returns (string memory) {
-        return tokenBaseURI;
-    }
+
 
     /**
         * @dev Metadata is reliant on graduatedNFTs[id] checks
@@ -133,10 +167,13 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
 
     /**
         * @dev creates a profile with Ghosts as well as minting a CC NFT to the msg.sender.
+        * @param name of the user
+        * @param bio of the user
+        * @param title of the user
         * @param handle of the user 
         * @param hashes of profiles hash[0]: avatar, hash[1]: metadata
      */
-    function createUser(string memory handle, string[] memory hashes) public {
+    function createUser(string memory name, string memory bio, string memory title, string memory handle, string[] memory hashes) external {
         uint id = _userCounter.current();
         _userCounter.increment();
         
@@ -166,7 +203,6 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
 
         emit UserCreated(msg.sender, id);
     }
-
 
     /**
         * @dev Ghosts profile required. Mints WarmUpNFT for current race in progress.
@@ -240,6 +276,12 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         }
     }
 
+    /////////////////////////////////
+    ///                           ///
+    ///     Internal Functions    ///
+    ///                           ///
+    /////////////////////////////////
+
     /**
         * @dev E Z P Z minting, doesn't care about warmUps or raceNFTs. Only called by this address.
         * @param to, the address of the user
@@ -249,6 +291,105 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         uint256 tokenId = _tokenIdCounter.current();
         _safeMint(to, tokenId);
     }
+
+    /**
+        * @dev subscribes the msg.sender to the provided IDs.
+        * @notice SubscribeParams only mentions profileIds but profileNFT._subscribe shows an address subscriber param
+        * @param profileIDs to follow
+     */
+    function ccSubscribe(uint256[] calldata profileIDs, address who) internal {
+        DataTypes.SubscribeParams memory params;
+        params.subscriber = who;
+        params.profileIds = profileIDs;
+        bytes[] memory initData;
+        
+        ProfileNFT.subscribe(params, initData, initData); 
+    }
+
+    /**
+        * @dev sets the namespace owner of the ProfileNFT to the provided address.
+        * @param addr of new namespace owner
+     */
+    function ccSetNSOwner(address addr) internal {
+        ProfileNFT.setNamespaceOwner(addr);
+    }
+
+    /**
+        * @dev registers a new essenceNFT to the provided profile.
+        * @notice registerEssence(params, '') = '' > initData only required for middleware
+        * @param profileId is the profileId from the registed profile on ProfileNFT
+        * @param name of Essence NFT
+        * @param symbol of Essence NFT
+        * @param essenceURI where to find the image
+        * @param essenceMw the address of the middleware of our NFT
+        * @param transferable if the NFT should be transferable or not
+        * @param deployAtReg if the NFT deploy should happen at the registration or not
+     */
+    function ccRegEssence(
+        uint profileId,
+        string calldata name,
+        string calldata symbol,
+        string calldata essenceURI,
+        address essenceMw, 
+        bool transferable,
+        bool deployAtReg,
+        address essBeacon
+        ) internal {
+        DataTypes.RegisterEssenceParams memory params;
+        params.profileId = profileId;
+        params.name = name;
+        params.symbol = symbol;
+        params.essenceTokenURI = essenceURI;
+        params.essenceMw = essenceMw;
+        params.transferable = transferable;
+        params.deployAtRegister = deployAtReg;
+
+        ProfileNFT.registerEssence(params, '');
+    }
+
+    /**
+        * @dev collects essence from profileId to who
+        * @param profileId from where the NFT should be minted
+        * @param essenceId which essence to mint
+        * @param who is the user receiving the NFT
+     */
+    function ccCollectEss(address who, uint profileId, uint essenceId) internal {
+        DataTypes.CollectParams memory params;
+        params.collector = who;
+        params.profileId = profileId;
+        params.essenceId = essenceId;
+
+        ProfileNFT.collect(params, '', '');
+    }
+
+    function ccSetMetadata(uint profileId, string calldata metadata) internal {
+        ProfileNFT.setMetadata(profileId, metadata); 
+    }
+
+    function ccSetSubData(uint profileId, string calldata uri, address mw, bytes calldata mwData) internal {
+        ProfileNFT.setSubscribeData(profileId, uri, mw, mwData);
+    }
+
+    function ccSetEssData(uint profileId, uint essId, string calldata uri, address mw, bytes calldata mwData) internal {
+        ProfileNFT.setEssenceData(profileId, essId, uri, mw, mwData);
+    }
+
+    function ccSetPrimary(uint profileId) internal {
+        ProfileNFT.setPrimaryProfile(profileId);
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return tokenBaseURI;
+    }
+
+
+    /////////////////////////////////
+    ///                           ///
+    ///         Overrides         ///
+    ///                           ///
+    /////////////////////////////////
+
+
     
     // The following functions are overrides required by Solidity.
     // soulbound
