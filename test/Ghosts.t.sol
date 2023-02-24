@@ -30,6 +30,7 @@ contract GhostsTest is Test {
         answers[3] = 0x88ed3ec42dab95394f28600182a62493e05b714842e7f5cc236296486adb2a31;
 
         ghosts = new Ghosts(answers);
+        ghosts.setBaseURI("ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/");
     }
 
     function test_CreateUser() external {
@@ -40,7 +41,7 @@ contract GhostsTest is Test {
 
         ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
 
-        (address addr, uint raceId, uint comTask, uint perf, uint ccID) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
 
         assertEq(user1, addr);
         assertTrue(ccID != 0);
@@ -55,7 +56,7 @@ contract GhostsTest is Test {
         ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
         ghosts.startNextRace();
 
-        (address addr, uint raceId, uint comTask, uint perf, uint ccId) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
 
         assertEq(raceId, 0);
 
@@ -71,32 +72,32 @@ contract GhostsTest is Test {
         ghosts.startNextRace();
         string memory tokenURI = ghosts.tokenURI(1);
 
-        ghosts.submitCompletedTask(0xbfa17807147311c915e5edfc6f73dc05a30eeda3aa16ce069a8b823a5ce31276, 100);
+        ghosts.submitCompletedTask(0xbfa17807147311c915e5edfc6f73dc05a30eeda3aa16ce069a8b823a5ce31276, 100, 'lol');
         vm.warp(1);
         vm.roll(1);
         string memory tokenURINew = ghosts.tokenURI(1);
 
-        assertEq(tokenURI, "ipfs://QmPKJEfJpDmBTYjCWzQeRfrUqTJfW9bCgZWNyo93VCFVEK/WarmUpNFT1.json");
-        assertEq(tokenURINew, "ipfs://QmPKJEfJpDmBTYjCWzQeRfrUqTJfW9bCgZWNyo93VCFVEK/RaceNFT1.json");
+        assertEq(tokenURI, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/WarmUpNFT1.json");
+        assertEq(tokenURINew, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/RaceNFT1.json");
 
         ghosts.startNextRace();
 
         string memory uriToken = ghosts.tokenURI(2);
 
-        (address addr, uint raceId, uint comTask, uint perf, uint ccId) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
 
-        assertEq(uriToken, "ipfs://QmPKJEfJpDmBTYjCWzQeRfrUqTJfW9bCgZWNyo93VCFVEK/WarmUpNFT2.json");
+        assertEq(uriToken, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/WarmUpNFT2.json");
         assertEq( ghosts.balanceOf(user1), 2);
         assertEq(raceId, 1);
         assertEq(comTask, 1);
         assertEq(perf, 100);
 
-        ghosts.submitCompletedTask(0x47d6c2e892d5fcccee0f0f709099f4bede9338e572cd32b514241874300f777e, 100);
+        ghosts.submitCompletedTask(0x47d6c2e892d5fcccee0f0f709099f4bede9338e572cd32b514241874300f777e, 100, 'lol');
         string memory uriTokenNew = ghosts.tokenURI(2);
-        assertEq(uriTokenNew, "ipfs://QmPKJEfJpDmBTYjCWzQeRfrUqTJfW9bCgZWNyo93VCFVEK/RaceNFT2.json");
+        assertEq(uriTokenNew, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/RaceNFT2.json");
 
         vm.expectRevert();
-        ghosts.submitCompletedTask(0x47d6c2e892d5fcccee0f0f709099f4bede9338e572cd32b514241874300f777e, 100);
+        ghosts.submitCompletedTask(0x47d6c2e892d5fcccee0f0f709099f4bede9338e572cd32b514241874300f777e, 100, 'lol');
 
         ghosts.startNextRace();
         vm.expectRevert();
@@ -158,18 +159,36 @@ contract GhostsTest is Test {
             bytes32(0xc3a24b0501bd2c13a7e57f2db4369ec4c223447539fc0724a9d55ac4a06ebd4d)
         ));
 
-        ghosts.submitCompletedTask(ans, 100);
+        ghosts.submitCompletedTask(ans, 100, 'lol');
         vm.warp(1);
         vm.roll(1);
         string memory tokenURINew = ghosts.tokenURI(1);
 
-        assertEq(tokenURI, "ipfs://QmPKJEfJpDmBTYjCWzQeRfrUqTJfW9bCgZWNyo93VCFVEK/WarmUpNFT1.json");
-        assertEq(tokenURINew, "ipfs://QmPKJEfJpDmBTYjCWzQeRfrUqTJfW9bCgZWNyo93VCFVEK/RaceNFT1.json");
+        assertEq(tokenURI, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/WarmUpNFT1.json");
+        assertEq(tokenURINew, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/RaceNFT1.json");
 
         ghosts.transferFrom(msg.sender, address(this), 1);
         ghosts.safeTransferFrom(msg.sender, user2, 1);
         assertEq(ghosts.balanceOf(address(this)), 0);
         assertEq(ghosts.balanceOf(user2), 0);
+    }
+
+    function test_SetURI() external {
+        string[] memory hashes = new string[](2);
+        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
+        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
+
+
+        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
+        ghosts.startNextRace();
+
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
+
+        string memory oldUri = ghosts.tokenURI(1);
+        ghosts.setBaseURI("www.ipfs.com/");
+        string memory newUri = ghosts.tokenURI(1);
+        assertEq(oldUri, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/WarmUpNFT1.json");
+        assertEq(newUri, "www.ipfs.com/WarmUpNFT1.json");
     }
 
 

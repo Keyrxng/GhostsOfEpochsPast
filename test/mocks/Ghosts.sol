@@ -17,6 +17,8 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
 
     IProfileNFT constant ProfileNFT = IProfileNFT(0x57e12b7a5F38A7F9c23eBD0400e6E53F2a45F271);
 
+    string public tokenBaseURI;
+
     struct User {
         address userAddress; // user address
         uint raceId; // the race they are currently on
@@ -65,7 +67,7 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         * @dev hashes are imprinted into finalRaceNFTs for comparison for submissions.
         * @param dunno bytes32[] of hashes for the initial round of race content.
      */
-    constructor(bytes32[] memory dunno, string memory baseURI) ERC721("GhostsOfEpochsPast", "Ghosts") payable {
+    constructor(bytes32[] memory dunno) ERC721("GhostsOfEpochsPast", "Ghosts") payable {
         uint len = dunno.length;
         for(uint x = 0; x < len; x++){
             finalRaceNfts[x] = RaceNFT({
@@ -77,12 +79,12 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
                 userAddress: address(0)
             });
         }
-        _setBaseURI(baseURI);
+        tokenBaseURI = "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/";
     }
 
     /**
         * @dev relies on the owner supplying the correct length of the current supply of race content (mapping len)
-        * @param bytes32[] of race content hashes
+        * @param races of race content hashes
         * @param length of the current raceNFTs mapping (amount of active races)
      */
     function addRaces(bytes32[] memory races, uint length) external onlyOwner {
@@ -101,10 +103,14 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     }
 
     /**
-        * @param string of new IPFS URI "ipfs://hash..../"
+        * @param uri of new IPFS URI "ipfs://hash..../"
      */
-    function setBaseURI(string memory uri) external onlyOwner {
-        _setBaseURI(uri);
+
+    function setBaseURI(string calldata uri) external onlyOwner {
+        tokenBaseURI = uri;
+    }
+    function _baseURI() internal view override returns (string memory) {
+        return tokenBaseURI;
     }
 
     /**
@@ -127,11 +133,11 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
 
     /**
         * @dev creates a profile with Ghosts as well as minting a CC NFT to the msg.sender.
-        * @param string name of the user
-        * @param string bio of the user
-        * @param string title of the user
-        * @param string handle of the user 
-        * @param string[] uris of profiles hash[0]: avatar, hash[1]: metadata
+        * @param name of the user
+        * @param bio of the user
+        * @param title of the user
+        * @param handle of the user 
+        * @param hashes of profiles hash[0]: avatar, hash[1]: metadata
      */
     function createUser(string memory name, string memory bio, string memory title, string memory handle, string[] memory hashes) public {
         uint id = _userCounter.current();
@@ -149,10 +155,13 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
 
         User memory user = User(
             msg.sender,
-            0,
-            0,
-            0,
-            ccID
+            0, // raceId
+            0, // completedTasks
+            0, // performance
+            0, // spotTheBugs
+            0, // contentPosts
+            0, // ctfStbContribs
+            ccID // CyberConnect Profile ID
         );
 
         users.push(user);
@@ -193,10 +202,10 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     /**
         * @dev WarmUpNFT required. Pops current warmUpNFT from mapping + pushes tokenId to graduatedNFTs. Metadata will return RaceNFT JSON.
         * @notice User.raceId is incremented after a task has been submitted successfully.
-        * @param bytes32 answer of user total user submissions. The hash of the hashes of individual answers.
-        * @param string metadata with additional info regarding user performances etc for CC.
+        * @param answers of user total user submissions. The hash of the hashes of individual answers.
+        * @param metadata with additional info regarding user performances etc for CC.
      */
-    function submitCompletedTask(bytes32 answers, string memory metadata) external {
+    function submitCompletedTask(bytes32 answers, uint perf, string memory metadata) external {
         User storage user = userMap[msg.sender];
         require(user.userAddress != address(0) , "No User Account");
         require(balanceOf(msg.sender) != 0 , "cannot submit a task without the warmUp NFT");
@@ -236,7 +245,7 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
 
     /**
         * @dev E Z P Z minting, doesn't care about warmUps or raceNFTs. Only called by this address.
-        * @param address to, the address of the user
+        * @param to, the address of the user
      */
     function safeMint(address to) internal {
         _tokenIdCounter.increment();
