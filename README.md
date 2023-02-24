@@ -29,7 +29,7 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 
 ## What's Next?
 
-### Some key features we plan to add if we receive good feedback from the community:
+### Key features we plan to add depending on the feedback from the community:
 
 * The ongoing addition of the newly released public Secureum race epochs.
 * The addition of other 3rd party quiz and learning content from niche specific DAO's and creators.
