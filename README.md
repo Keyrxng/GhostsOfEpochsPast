@@ -74,7 +74,8 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 * Beta Release: Feb 8th 2023
 * Alchemy Submission: Feb 9th/10th/11th 2023
 * CyberConnect Hackathon Registration: Feb 9th 2023
-* [Project on Dorahacks](https://dorahacks.io/buidl/4422#vision)  
+* [Project on Dorahacks](https://dorahacks.io/buidl/4422#vision)  You can upvote here!
+* [Link3 Profile](https://link3.to/8UCLJFQF)  
 
 # Technical Roadmap
 
