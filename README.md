@@ -1,4 +1,4 @@
-# Ghosts Of Epochs Past (beta)
+# Ghosts Of Epochs Past
 
 ## Demographic
 
