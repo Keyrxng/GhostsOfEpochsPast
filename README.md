@@ -17,7 +17,7 @@ Accessing the Secureum and other security related materials that aren't yet in t
 * Create a user profile consisting of your alias, job title, bio and a social handle of choice.
 * Go to the first race (technically it's race 4 as secureum released their content from this epoch forward).
 * Mint your WarmUp NFT. This allows you access to attempt to complete the race with the correct answers.
-* Pick your answers and then **Off-chain Submit** them which will generate your results but they will be hidden until revealed.
+* Pick your answers and then **Off-chain Submit** them which will generate your results immediately.
 * If you are brave you can **On-chain Submit** at this point, it will only ask you to sign a transaction if you got them all correct.
 * If you are not feeling so brave, you can review your results and correct your mistakes before submitting correctly.
 * Your WarmUp NFT has just been upgraded to a RaceNFT which signifies you have completed that specific race.
