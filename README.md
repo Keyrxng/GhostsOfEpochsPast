@@ -31,7 +31,7 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 
 ### Some key features we plan to add if we receive good feedback from the community:
 
-* The ongoing addition of all public Secureum race epochs.
+* The ongoing addition of the newly released public Secureum race epochs.
 * The addition of other 3rd party quiz and learning content from niche specific DAO's and creators.
 * Increase the *'socialness'* of the UX and UI by introducing a social graph, user follows and user feed (i.e seeing other user profiles, recent completed races/challenges by those a user follows in the form of a feed) and maybe even some ranking system.
 * The addition of a blockchain security research focused blog/content section.
