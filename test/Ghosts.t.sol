@@ -33,12 +33,7 @@ contract GhostsTest is Test {
     }
 
     function test_CreateUser() external {
-        string[] memory hashes = new string[](2);
-        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
-        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
-
-
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
+        createUser();
 
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
 
@@ -48,12 +43,7 @@ contract GhostsTest is Test {
     }
 
     function test_StartNextRace() external {
-        string[] memory hashes = new string[](2);
-        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
-        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
-
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
-        ghosts.startNextRace();
+        createUser();
 
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
 
@@ -63,12 +53,7 @@ contract GhostsTest is Test {
     }
 
     function test_SubmitRace() external {
-        string[] memory hashes = new string[](2);
-        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
-        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
-
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
-        ghosts.startNextRace();
+        createUser();
         string memory tokenURI = ghosts.tokenURI(1);
 
         ghosts.submitCompletedTask(0xbfa17807147311c915e5edfc6f73dc05a30eeda3aa16ce069a8b823a5ce31276, 100, 'lol');
@@ -139,12 +124,8 @@ contract GhostsTest is Test {
         address userAddress
         ) = ghosts.finalRaceNfts(0);
 
-        string[] memory hashes = new string[](2);
-        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
-        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
+        createUser();
 
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
-        ghosts.startNextRace();
         string memory tokenURI = ghosts.tokenURI(1);
 
         bytes32 ans = keccak256(abi.encodePacked(
@@ -173,13 +154,7 @@ contract GhostsTest is Test {
     }
 
     function test_SetURI() external {
-        string[] memory hashes = new string[](2);
-        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
-        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
-
-
-        ghosts.createUser("Keyrxng", "awesome bio", "Web3 Pro", "@Keyrxng", hashes);
-        ghosts.startNextRace();
+        createUser();
 
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
 
@@ -190,6 +165,23 @@ contract GhostsTest is Test {
         assertEq(newUri, "www.ipfs.com/WarmUpNFT1.json");
     }
 
+    function test_RegisterEssence() external {
+        createUser();
 
+
+    }
+
+
+
+
+    function createUser() internal {
+        string[] memory hashes = new string[](2);
+        hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
+        hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
+
+
+        ghosts.createUser("@Keyrxng", hashes);
+        ghosts.startNextRace();
+    }
 
 }
