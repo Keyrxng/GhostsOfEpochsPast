@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import {GhostsHub} from "./GhostsHub.sol";
-import {DataTypes} from "./interfaces/IProfileNFT.sol";
+import {DataTypes, IProfileNFT} from "./interfaces/IProfileNFT.sol";
 import {IGhosts} from "./interfaces/IGhosts.sol";
 import {Ownable} from  "@openzeppelin/access/Ownable.sol";
+import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
 
-contract GhostsFeats is GhostsHub, Ownable {
-    string internal tokenBaseURI;
+contract GhostsFeats  {
     bytes32 internal constant FOLLOWUSER = keccak256("FollowUser");
     bytes32 internal constant CONSUMECONTENT = keccak256("ConsumeContent");
-
-    address internal GhostsAddr;
-
+    bytes32 internal constant CREATECONTENT = keccak256("CreateContent");
+    address internal ghostsAddr;
+    IProfileNFT internal constant ccProfileNFT =
+        IProfileNFT(0x57e12b7a5F38A7F9c23eBD0400e6E53F2a45F271);
+    
     struct Feat {
         bytes name; // feat name
         bytes desc; // description of feat
@@ -27,26 +28,23 @@ contract GhostsFeats is GhostsHub, Ownable {
         uint256 featID; // feat ID - mapped to featsMasterList
     }
 
-    struct User {
+    struct UserFeats {
         uint256 ccID; // CyberConnect ID
         uint256 ghostsID; // Ghosts User ID
         uint followCount; // number of users following this user
         uint consumeCount; // number of pieces of content consumed
+        uint createCount; // number of pieces of content created
         Feat[] feats; // list of owned feats
     }
 
     Feat[] public featsMasterList; // list of feats
     mapping(bytes => ProtocolFeats) public featsMasterListMap; // feat name => featID reference
     mapping(uint256 => Feat) public feats; // feat ID => feat data
-    mapping(address => User) public getUser; // stores the list of feats for each user
+    mapping(address => UserFeats) public getUser; // stores the list of feats for each user
     mapping(address => mapping(uint=>uint)) public addrToFeatToTiers; // user > featId > tier
     mapping(address => mapping(bytes32=>uint)) internal protocolActions; // allow protocol data to be stored in mapping
     mapping(uint => uint) internal featsIdToEssID; // mapping featID => essID
     event NewFollow(address indexed follower, address indexed followed);
-
-    constructor(address ghostsAddr) {
-        GhostsAddr = ghostsAddr;
-    }
 
     /**
         * @dev Creates the Essence NFT representing each achievement
@@ -54,23 +52,21 @@ contract GhostsFeats is GhostsHub, Ownable {
         * @param name - essence name (the feat name?)
         * @param symbol - essence symbol
         * @param essenceURI - essence URI
-        * @param essenceMw - essence middleware contract (Permissioned?) 
      */
     function createAchievements(
         uint256 ccID,
         string calldata name,
         string calldata symbol,
         string calldata essenceURI,
-        address essenceMw,
+        address /*essenceMw*/,
         string calldata description,
         uint weight,
         uint16 essTier
-
-        ) external onlyOwner {
-        uint essID = ccRegEssence(ccID, name, symbol, essenceURI, essenceMw, false, true);
-
+        ) public {
+        uint essID = ccRegEssence(ccID, name, symbol, essenceURI, address(0), true, true);
 
         uint256 featID = featsMasterList.length;
+
         Feat memory feat = Feat({
             name: bytes(name),
             desc: bytes(description),
@@ -86,7 +82,7 @@ contract GhostsFeats is GhostsHub, Ownable {
         featsIdToEssID[featID] = essID;     
     }
 
-    function awardAchievements(address userAddr) external {
+    function awardAchievements(address userAddr) public {
         _userFeatCheck(userAddr);
     }
 
@@ -124,13 +120,13 @@ contract GhostsFeats is GhostsHub, Ownable {
     function userAwardFeats(uint featId, uint tier, address userAddr) internal {
         require(featId < featsMasterList.length, "featId out of range");
         Feat memory feat = feats[featId];
-        User memory u = getUser[userAddr];
+        UserFeats storage u = getUser[userAddr];
 
         if(addrToFeatToTiers[userAddr][featId] >= tier) {
             return;
         }
 
-        uint256 profileId = IGhosts(GhostsAddr).getUser(userAddr).ccID; // get users raceID
+        uint256 profileId = IGhosts(ghostsAddr).getGhostsProfile(userAddr).ccID; // get users raceID
 
         Feat memory tmp = featsMasterList[featId];
         tmp.earnedAt = block.timestamp;
@@ -138,7 +134,7 @@ contract GhostsFeats is GhostsHub, Ownable {
 
         addrToFeatToTiers[userAddr][featId] = tier;
 
-        getUser[userAddr].feats.push(tmp);
+        u.feats.push(tmp);
 
         ccCollectEss(userAddr, profileId, feat.essId);
     }
@@ -150,28 +146,49 @@ contract GhostsFeats is GhostsHub, Ownable {
     function followUser(
         address userAddr,
         address _followed
-    ) external returns (bool) {
+    ) public returns (bool) {
         getUser[_followed].followCount += 1;
         protocolActions[userAddr][FOLLOWUSER] += 1;
-        uint256 ccID = IGhosts(GhostsAddr).getUser(_followed).ccID; // get users raceID
+        uint256 ccID = IGhosts(ghostsAddr).getGhostsProfile(_followed).ccID; // get users raceID
         uint256[] memory profileIDs = new uint[](1);
         profileIDs[0] = ccID;
-        _ccSubscribe(profileIDs, userAddr);
+        ccSubscribe(profileIDs);
         emit NewFollow(userAddr, _followed);
         return true;
     }
 
-    function consumeContent(address userAddr, uint256 profileId, uint256 essID) external {
+    function consumeContent(address userAddr, uint256 profileId, uint256 essID) public {
         protocolActions[userAddr][CONSUMECONTENT] += 1;
         getUser[userAddr].consumeCount += 1;
         ccCollectEss(userAddr, profileId, essID);
     }
 
     /**
-        * @dev check Ghosts.User.raceID and returns feat level based on completion
+        * @dev Create Content for protocol uses this function to perform the following:
+        * 1. update protocolAction[] stores the amount of calls to this function
+        * 2. update User.createCount, increment by 1
+        * 3. call function ccRegEssence() to register the essence with the profile
+     */
+    function createContent(
+        address userAddr,
+        uint256 profileId,
+        string calldata name,
+        string calldata symbol,
+        string calldata essenceURI,
+        address essenceMw,
+        bool transferable,
+        bool deployAtReg
+         ) public {
+        protocolActions[userAddr][CREATECONTENT] += 1;
+        getUser[userAddr].createCount += 1;
+        ccRegEssence(profileId, name, symbol, essenceURI, essenceMw, transferable, deployAtReg);
+    }
+
+    /**
+        * @dev check User.raceID and returns feat level based on completion
      */
     function raceFeatCheck(address userAddr) internal returns (uint256) {
-        uint256 currentRaceID = IGhosts(GhostsAddr).getUser(userAddr).raceId; // get users raceID
+        uint256 currentRaceID = IGhosts(ghostsAddr).getGhostsProfile(userAddr).raceId; // get users raceID
         if (currentRaceID >= 2) {
             if (currentRaceID < 8) {
                 return 1;
@@ -189,13 +206,14 @@ contract GhostsFeats is GhostsHub, Ownable {
         } else {
             return 0;
         }
+         return 0;
     }
 
     /**
-        * @dev check Ghosts.User.spotTheBugs and returns feat level based on completion
+        * @dev check User.spotTheBugs and returns feat level based on completion
      */
     function stbFeatCheck(address userAddr) internal returns (uint256) {
-        uint256 spotTheBugs = IGhosts(GhostsAddr).getUser(userAddr).spotTheBugs; // get users spotTheBugs count
+        uint256 spotTheBugs = IGhosts(ghostsAddr).getGhostsProfile(userAddr).spotTheBugs; // get users spotTheBugs count
         if (spotTheBugs >= 5) {
             if (spotTheBugs < 20) {
                 return 1;
@@ -213,16 +231,17 @@ contract GhostsFeats is GhostsHub, Ownable {
         } else {
             return 0;
         }
+        return 0;
     }
 
     /**
-        * @dev check Ghosts.User.ctfStbContribs and returns feat level based on completion
+        * @dev check User.ctfStbContribs and returns feat level based on completion
      */
     function contribFeatCheck(address userAddr)
         internal
         returns (uint256)
     {
-        uint256 contribCount = IGhosts(GhostsAddr).getUser(userAddr).ctfStbContribs; // get users contribCount
+        uint256 contribCount = IGhosts(ghostsAddr).getGhostsProfile(userAddr).ctfStbContribs; // get users contribCount
         if (contribCount >= 1) {
             if (contribCount < 5) {
                 return 1;
@@ -240,6 +259,7 @@ contract GhostsFeats is GhostsHub, Ownable {
         } else {
             return 0;
         }
+        return 0;
     }
 
     /**
@@ -264,6 +284,7 @@ contract GhostsFeats is GhostsHub, Ownable {
         } else {
             return 0;
         }
+        return 0;
     }
 
     /**
@@ -288,13 +309,14 @@ contract GhostsFeats is GhostsHub, Ownable {
         } else {
             return 0;
         }
+        return 0;
     }
 
     /**
-        * @dev check Ghosts.User.contentPosts and returns feat level based on completion
+        * @dev check User.contentPosts and returns feat level based on completion
      */
     function contentFeatCheck(address userAddr) internal returns (uint256) {
-        uint256 contentCount = IGhosts(GhostsAddr).getUser(userAddr).contentPosts; // get users post count
+        uint256 contentCount = IGhosts(ghostsAddr).getGhostsProfile(userAddr).contentPosts; // get users post count
         if (contentCount >= 1) {
             if (contentCount < 5) {
                 return 1;
@@ -312,6 +334,7 @@ contract GhostsFeats is GhostsHub, Ownable {
         } else {
             return 0;
         }
+        return 0;
     }
 
     /**
@@ -337,6 +360,7 @@ contract GhostsFeats is GhostsHub, Ownable {
         } else {
             return 0;
         }
+        return 0;
     }
 
 
@@ -345,7 +369,222 @@ contract GhostsFeats is GhostsHub, Ownable {
     ///     Internal Functions    ///
     ///                           ///
     /////////////////////////////////
+    function ccGetMetadata(uint256 profileId)
+        public
+        view
+        returns (string memory)
+    {
+        return ccProfileNFT.getMetadata(profileId);
+    }
 
+    function ccGetAvatar(uint256 profileId)
+        public
+        view
+        returns (string memory)
+    {
+        return ccProfileNFT.getAvatar(profileId);
+    }
 
+    function ccGetSubNFTAddr(uint256 profileId)
+        public
+        view
+        returns (address)
+    {
+        return ccProfileNFT.getSubscribeNFT(profileId);
+    }
+
+    function ccGetSubURI(uint256 profileId)
+        public
+        view
+        returns (string memory)
+    {
+        return ccProfileNFT.getSubscribeNFTTokenURI(profileId);
+    }
+
+    function ccGetEssNFTAddr(uint256 profileId, uint256 essId)
+        public
+        view
+        returns (address)
+    {
+        return ccProfileNFT.getEssenceNFT(profileId, essId);
+    }
+
+    function ccGetEssURI(uint256 profileId, uint256 essId)
+        public
+        view
+        returns (string memory)
+    {
+        return ccProfileNFT.getEssenceNFTTokenURI(profileId, essId);
+    }
+
+    function ccSubscribe(uint256[] memory profileIDs) public {
+        _ccSubscribe(profileIDs, msg.sender);
+    }
+
+    /**
+     * @dev sets the namespace owner of the ccProfileNFT to the provided address.
+     * @param addr of new namespace owner
+     */
+    function ccSetNSOwner(address addr) public {
+        ccProfileNFT.setNamespaceOwner(addr);
+    }
+
+    function ccRegEssence(
+        uint256 profileId,
+        string calldata name,
+        string calldata symbol,
+        string calldata essenceURI,
+        address essenceMw,
+        bool transferable,
+        bool deployAtReg
+    ) public returns (uint256) {
+        DataTypes.RegisterEssenceParams memory params;
+
+        params.profileId = profileId;
+        params.name = name;
+        params.symbol = symbol;
+        params.essenceTokenURI = essenceURI;
+        params.essenceMw = essenceMw;
+        params.transferable = transferable;
+        params.deployAtRegister = deployAtReg;
+
+        return _ccRegEssence(params);
+    }
+
+    function ccCollectEss(
+        address who,
+        uint256 profileId,
+        uint256 essenceId
+    ) public {
+        DataTypes.CollectParams memory params;
+        params.collector = who;
+        params.profileId = profileId;
+        params.essenceId = essenceId;
+
+        _ccCollectEss(params);
+    }
+
+    function ccSetMetadata(uint256 profileId, string calldata metadata)
+        public
+    {
+        _ccSetMetadata(profileId, metadata);
+    }
+
+    function ccSetSubData(
+        uint256 profileId,
+        string calldata uri,
+        address mw,
+        bytes calldata mwData
+    ) public {
+        _ccSetSubData(profileId, uri, mw, mwData);
+    }
+
+    function ccSetEssData(
+        uint256 profileId,
+        uint256 essId,
+        string calldata uri,
+        address mw,
+        bytes calldata mwData
+    ) public {
+        _ccSetEssData(profileId, essId, uri, mw, mwData);
+    }
+
+    function ccSetPrimary(uint256 profileId) public {
+        _ccSetPrimary(profileId);
+    }
+
+    function _ccSubscribe(uint256[] memory profileIDs, address who) internal {
+        DataTypes.SubscribeParams memory params;
+        params.subscriber = who;
+        params.profileIds = profileIDs;
+        bytes[] memory initData;
+
+        ccProfileNFT.subscribe(params, initData, initData);
+    }
+
+    function _ccRegEssence(DataTypes.RegisterEssenceParams memory params)
+        internal
+        returns (uint256)
+    {
+        uint id = ccProfileNFT.registerEssence(params, '');
+        return id; 
+    }
+
+    function _ccCollectEss(DataTypes.CollectParams memory params) internal {
+        ccProfileNFT.collect(params, "", "");
+    }
+
+    function _ccSetMetadata(uint256 profileId, string calldata metadata)
+        internal
+    {
+        ccProfileNFT.setMetadata(profileId, metadata);
+    }
+
+    function _ccSetSubData(
+        uint256 profileId,
+        string calldata uri,
+        address mw,
+        bytes calldata mwData
+    ) internal {
+        ccProfileNFT.setSubscribeData(profileId, uri, mw, mwData);
+    }
+
+    function _ccSetEssData(
+        uint256 profileId,
+        uint256 essId,
+        string calldata uri,
+        address mw,
+        bytes calldata mwData
+    ) internal {
+        ccProfileNFT.setEssenceData(profileId, essId, uri, mw, mwData);
+    }
+
+    function _ccSetPrimary(uint256 profileId) internal {
+        ccProfileNFT.setPrimaryProfile(profileId);
+    }
+
+     /**
+     * @notice Check if the profile issued EssenceNFT is collected by me.
+     *
+     * @param profileId The profile id.
+     * @param essenceId The essence id.
+     * @param me The address to check.
+     * @param _namespace The address of the ccProfileNFT
+     */
+    function isCollectedByMe(
+        uint256 profileId,
+        uint256 essenceId,
+        address me,
+        address _namespace
+    ) external view returns (bool) {
+        address essNFTAddr = IProfileNFT(_namespace).getEssenceNFT(
+            profileId,
+            essenceId
+        );
+        if (essNFTAddr == address(0)) {
+            return false;
+        }
+
+        return IERC721(essNFTAddr).balanceOf(me) > 0;
+    }
+
+    /**
+     * @notice Check if the profile is subscribed by me.
+     *
+     * @param profileId The profile id.
+     * @param me The address to check.
+     * @param _namespace The address of the ProfileNFT
+     */
+    function isSubscribedByMe(uint256 profileId, address me, address _namespace)
+        external
+        view
+        returns (bool)
+    {
+        address subNFTAddr = IProfileNFT(_namespace).getSubscribeNFT(profileId);
+        if (subNFTAddr == address(0)) {
+            return false;
+        }
+        return IERC721(subNFTAddr).balanceOf(me) > 0;
+    }
 
 }

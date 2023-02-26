@@ -3,6 +3,8 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "../src/Ghosts.sol";
+import "../src/GhostsFeats.sol";
+import "../src/GhostsHub.sol";
 
 contract GhostsTest is Test {
     Ghosts public ghosts;
@@ -30,6 +32,7 @@ contract GhostsTest is Test {
         answers[3] = 0x88ed3ec42dab95394f28600182a62493e05b714842e7f5cc236296486adb2a31;
 
         ghosts = new Ghosts(answers);
+
     }
 
     function test_CreateUser() external {
@@ -164,14 +167,21 @@ contract GhostsTest is Test {
         assertEq(newUri, "www.ipfs.com/WarmUpNFT1.json");
     }
 
-    function test_RegisterEssence() external {
+    function test_CreateAchievements() external {
         createUser();
 
+        (uint ccID,,,,) = ghosts.getUser(user1);
+
+        ghosts.createAchievements(ccID, "Anti-Social Auditor", "GFEATS", "ipfs://hash", address(this), "Description..>", 10, 1);
+
+        (bytes memory name, bytes memory desc, bytes memory imageUrl, uint256 weight, uint256 essId, uint16 essTier, uint earnedAt) = ghosts.feats(1);
+        
+        console.log("name", string(name));
+
+        assertTrue(ccID > 0);
+        assertTrue(essId > 0);
 
     }
-
-
-
 
     function createUser() internal {
         string[] memory hashes = new string[](2);

@@ -9,3 +9,6 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/transmissions11/solmate.git
+[submodule "lib/cyberconnect"]
+	path = lib/cyberconnect
+	url = https://github.com/cyberconnecthq/cybercontracts.git
