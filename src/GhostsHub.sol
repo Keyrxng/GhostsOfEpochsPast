@@ -1,6 +1,6 @@
 pragma solidity ^0.8.9;
 
-import {DataTypes, IProfileNFT} from "./IProfileNFT.sol";
+import {DataTypes, IProfileNFT} from "./interfaces/IProfileNFT.sol";
 
 contract GhostsHub {
     /////////////////////////////////
@@ -79,7 +79,7 @@ contract GhostsHub {
         address essenceMw,
         bool transferable,
         bool deployAtReg
-    ) internal {
+    ) internal returns (uint256) {
         DataTypes.RegisterEssenceParams memory params;
 
         params.profileId = profileId;
@@ -90,7 +90,7 @@ contract GhostsHub {
         params.transferable = transferable;
         params.deployAtRegister = deployAtReg;
 
-        _ccRegEssence(params);
+        return _ccRegEssence(params);
     }
 
     function ccCollectEss(
@@ -146,8 +146,9 @@ contract GhostsHub {
 
     function _ccRegEssence(DataTypes.RegisterEssenceParams memory params)
         internal
+        returns (uint256)
     {
-        ProfileNFT.registerEssence(params, "");
+        return ProfileNFT.registerEssence(params, "");
     }
 
     function _ccCollectEss(DataTypes.CollectParams memory params) internal {

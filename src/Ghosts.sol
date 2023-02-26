@@ -8,8 +8,8 @@ import "@openzeppelin/access/Ownable.sol";
 import "@openzeppelin/utils/Counters.sol";
 import "@openzeppelin/utils/Strings.sol";
 import {GhostsHub} from "./GhostsHub.sol";
-import {DataTypes} from "./IProfileNFT.sol";
-import {IGhosts} from './IGhosts.sol';
+import {DataTypes} from "./interfaces/IProfileNFT.sol";
+import {IGhosts} from './interfaces/IGhosts.sol';
 import "forge-std/Test.sol";
 
 contract Ghosts is IGhosts, GhostsHub, ERC721, ERC721Enumerable, ERC721Burnable, Ownable {

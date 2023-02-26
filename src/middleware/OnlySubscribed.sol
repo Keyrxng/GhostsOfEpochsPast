@@ -4,7 +4,7 @@ pragma solidity ^0.8.14;
 import { ERC721 } from "solmate/tokens/ERC721.sol";
 
 import { IEssenceMiddleware } from "../interfaces/IEssMw.sol";
-import { IProfileNFT } from "../IProfileNFT.sol";
+import { IProfileNFT } from "../interfaces/IProfileNFT.sol";
 
 /**
  * @title Collect only when subscribed Middleware
