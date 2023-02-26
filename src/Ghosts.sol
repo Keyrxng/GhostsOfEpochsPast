@@ -66,7 +66,7 @@ contract Ghosts is IGhosts, GhostsHub, ERC721, ERC721Enumerable, ERC721Burnable,
     ///                           ///
     /////////////////////////////////
 
-    function getUser(address who) external returns(User memory) {
+    function getUser(address who) external view returns(User memory) {
         return userMap[who];
     }
 

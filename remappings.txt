@@ -1,4 +1,3 @@
 forge-std/=lib/forge-std/src/
 @openzeppelin/=lib/@openzeppelin/contracts/
-ERC721A/=lib/ERC721A/contracts/
-murky/=lib/murky/src
+solmate/=lib/solmate/src/

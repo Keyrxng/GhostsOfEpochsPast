@@ -59,7 +59,7 @@ contract GhostsHub {
         return ProfileNFT.getEssenceNFTTokenURI(profileId, essId);
     }
 
-    function ccSubscribe(uint256[] memory profileIDs) external {
+    function ccSubscribe(uint256[] memory profileIDs) internal {
         _ccSubscribe(profileIDs, msg.sender);
     }
 
@@ -67,7 +67,7 @@ contract GhostsHub {
      * @dev sets the namespace owner of the ProfileNFT to the provided address.
      * @param addr of new namespace owner
      */
-    function ccSetNSOwner(address addr) external {
+    function ccSetNSOwner(address addr) internal {
         ProfileNFT.setNamespaceOwner(addr);
     }
 
@@ -79,7 +79,7 @@ contract GhostsHub {
         address essenceMw,
         bool transferable,
         bool deployAtReg
-    ) external {
+    ) internal {
         DataTypes.RegisterEssenceParams memory params;
 
         params.profileId = profileId;
@@ -97,7 +97,7 @@ contract GhostsHub {
         address who,
         uint256 profileId,
         uint256 essenceId
-    ) external {
+    ) internal {
         DataTypes.CollectParams memory params;
         params.collector = who;
         params.profileId = profileId;
@@ -107,7 +107,7 @@ contract GhostsHub {
     }
 
     function ccSetMetadata(uint256 profileId, string calldata metadata)
-        external
+        internal
     {
         _ccSetMetadata(profileId, metadata);
     }
@@ -117,7 +117,7 @@ contract GhostsHub {
         string calldata uri,
         address mw,
         bytes calldata mwData
-    ) external {
+    ) internal {
         _ccSetSubData(profileId, uri, mw, mwData);
     }
 
@@ -127,11 +127,11 @@ contract GhostsHub {
         string calldata uri,
         address mw,
         bytes calldata mwData
-    ) external {
+    ) internal {
         _ccSetEssData(profileId, essId, uri, mw, mwData);
     }
 
-    function ccSetPrimary(uint256 profileId) external {
+    function ccSetPrimary(uint256 profileId) internal {
         _ccSetPrimary(profileId);
     }
 

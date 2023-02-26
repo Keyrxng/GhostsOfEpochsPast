@@ -1,27 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-import "@openzeppelin/token/ERC721/ERC721.sol";
-import "@openzeppelin/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/access/Ownable.sol";
-import "@openzeppelin/utils/Counters.sol";
-import "@openzeppelin/utils/Strings.sol";
 import {GhostsHub} from "./GhostsHub.sol";
 import {DataTypes} from "./IProfileNFT.sol";
 import {IGhosts} from "./IGhosts.sol";
+import {Ownable} from  "@openzeppelin/access/Ownable.sol";
 
-contract GhostsFeats is
-    GhostsHub,
-    ERC721,
-    ERC721Enumerable,
-    ERC721Burnable,
-    Ownable
-{
-    using Counters for Counters.Counter;
-    using Strings for uint256;
-    Counters.Counter private _tokenIdCounter;
-
+contract GhostsFeats is GhostsHub, Ownable {
     string internal tokenBaseURI;
     bytes32 internal constant FOLLOWUSER = keccak256("FollowUser");
 
@@ -62,9 +47,26 @@ contract GhostsFeats is
 
     event NewFollow(address indexed follower, address indexed followed);
 
-    constructor(address ghostsAddr) payable ERC721("GhostsFeats", "GFEATS") {
+    constructor(address ghostsAddr) {
         GhostsAddr = ghostsAddr;
-        tokenBaseURI = "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/";
+    }
+
+    /**
+        * @dev Creates the Essence NFT representing each achievement
+        * @param ccID - ccID (I'm best guessing we use the Ghosts CC Profile here)
+        * @param name - essence name (the feat name?)
+        * @param symbol - essence symbol
+        * @param essenceURI - essence URI
+        * @param essenceMw - essence middleware contract (OnlySubscribedMiddleWare) 
+     */
+    function createAchievements(
+        uint256 ccID,
+        string calldata name,
+        string calldata symbol,
+        string calldata essenceURI,
+        address essenceMw
+        ) external onlyOwner {
+        ccRegEssence(ccID, name, symbol, essenceURI, essenceMw, false, true);
     }
 
     /**
@@ -108,7 +110,7 @@ contract GhostsFeats is
             if (spotTheBugs < 100) {
                 return 3;
             }
-        } else if (spotTheBugs == 100) {
+        } else if (spotTheBugs >= 100) {
             return 4;
         } else {
             return 0;
@@ -233,33 +235,13 @@ contract GhostsFeats is
         address _followed
     ) external returns (bool) {
         getUser[_followed].followCount += 1;
-        protocolActions[msg.sender][FOLLOWUSER] += 1;
-        uint256 ccID = IGhosts(GhostsAddr).getUser(userAddr).ccID; // get users raceID
+        protocolActions[userAddr][FOLLOWUSER] += 1;
+        uint256 ccID = IGhosts(GhostsAddr).getUser(_followed).ccID; // get users raceID
         uint256[] memory profileIDs = new uint[](1);
         profileIDs[0] = ccID;
         _ccSubscribe(profileIDs, userAddr);
         emit NewFollow(userAddr, _followed);
         return true;
-    }
-
-
-
-    /**
-     * @param uri of new IPFS URI "ipfs://hash..../"
-     */
-    function setBaseURI(string calldata uri) external onlyOwner {
-        tokenBaseURI = uri;
-    }
-
-    /**
-     * @dev Metadata is reliant on graduatedNFTs[id] checks
-     * @dev TokenId is uncapped but raceIDs are aren't so tokenIdToRaceId ensures the metadata for the correct race is returned
-     * @param id of the token
-     */
-    function tokenURI(uint256 id) public view override returns (string memory) {
-        require(_exists(id), "ERC721Metadata: URI query for nonexistent token");
-
-        return string(abi.encodePacked(_baseURI(), "Feat", ".json"));
     }
 
     /////////////////////////////////
@@ -268,59 +250,12 @@ contract GhostsFeats is
     ///                           ///
     /////////////////////////////////
 
+
     /**
-     * @dev E Z P Z minting, doesn't care about warmUps or raceNFTs. Only called by this address.
-     * @param to, the address of the user
+        * @dev Creates the CC Essence NFT that represents our Achievement Badges
+        * @param ccID of the Ghosts Profile as we want these Badges to be minted from 
      */
-    function safeMint(address to) internal {
-        _tokenIdCounter.increment();
-        uint256 tokenId = _tokenIdCounter.current();
-        _safeMint(to, tokenId);
-    }
 
-    function _baseURI() internal view override returns (string memory) {
-        return tokenBaseURI;
-    }
 
-    /////////////////////////////////
-    ///                           ///
-    ///         Overrides         ///
-    ///                           ///
-    /////////////////////////////////
 
-    // The following functions are overrides required by Solidity.
-    // soulbound
-    function transferFrom(
-        address,
-        address,
-        uint256
-    ) public pure override(ERC721, IERC721) {
-        return;
-    }
-
-    function safeTransferFrom(
-        address,
-        address,
-        uint256
-    ) public pure override(ERC721, IERC721) {
-        return;
-    }
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256 batchSize
-    ) internal override(ERC721, ERC721Enumerable) {
-        super._beforeTokenTransfer(from, to, tokenId, batchSize);
-    }
-
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, ERC721Enumerable)
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceId);
-    }
 }
