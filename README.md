@@ -10,7 +10,7 @@ Accessing the Secureum and other security related materials that aren't yet in t
 
 ## How We Solve It?
 
-[GhostsOfEpochsPast](https://ghostsofepochspast.com/) is a place to study and revise previous race epochs provided by [Secureum](https://secureum.xyz/), a community of like minded crypto enthusiasts with a focus on **Ethereum**, **Solidity** and **Smart Contract Security**. There is no time limit unlike the real races (which you, fellow security researcher should be aiming to apply to participate in once you complete these stress free revisions). Your answers are hashed and verified on-chain, yes we are aware there are ways to cheat but that defeats the purpose. You should be old enough and resourceful enough to effectively learn from this material and not need to rely on shortcuts to "win", as you'll never place in C4 with that attitude.
+[GhostsOfEpochsPast](https://ghostsofepochspast.xyz/) is a place to study and revise previous race epochs provided by [Secureum](https://secureum.xyz/), a community of like minded crypto enthusiasts with a focus on **Ethereum**, **Solidity** and **Smart Contract Security**. There is no time limit unlike the real races (which you, fellow security researcher should be aiming to apply to participate in once you complete these stress free revisions). Your answers are hashed and verified on-chain, yes we are aware there are ways to cheat but that defeats the purpose. You should be old enough and resourceful enough to effectively learn from this material and not need to rely on shortcuts to "win", as you'll never place in C4 with that attitude.
 
 ## How To Get Started?
 
