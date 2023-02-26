@@ -7,44 +7,20 @@ import "@openzeppelin/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/access/Ownable.sol";
 import "@openzeppelin/utils/Counters.sol";
 import "@openzeppelin/utils/Strings.sol";
-import {DataTypes, IProfileNFT} from "./IProfileNFT.sol";
+import {GhostsHub} from "./GhostsHub.sol";
+import {DataTypes} from "./IProfileNFT.sol";
+import {IGhosts} from './IGhosts.sol';
+import "forge-std/Test.sol";
 
-contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
+contract Ghosts is IGhosts, GhostsHub, ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     using Counters for Counters.Counter;
     using Strings for uint256;
     Counters.Counter private _tokenIdCounter;
     Counters.Counter public _userCounter;
 
-    IProfileNFT constant ProfileNFT = IProfileNFT(0x57e12b7a5F38A7F9c23eBD0400e6E53F2a45F271);
-
     string public tokenBaseURI;
-
-    struct User {
-        address userAddress; // user address
-        uint raceId; // the race they are currently on
-        uint completedTasks; // completed tasks
-        uint performance; // a percentage based on previous task performance
-        uint spotTheBugs; // completed spot the bugs tasks
-        uint contentPosts; // content posted
-        uint ctfStbContribs; // CTF or STB contributions made
-        uint ccID; // their CC id
-    }
-
-    struct WarmUpNFT {
-        address userAddress;
-        uint currentTaskId;
-        uint tokenId;
-        bytes32 submittedAnswers; // submitted answers by the user      
-}
-
-    struct RaceNFT {
-        bytes32 submittedAnswers; // submitted answers by the user
-        bytes32 answer;
-        uint performance; // performance of the user out of 100
-        uint currentTaskId; 
-        uint tokenId;
-        address userAddress;
-    }
+    uint internal raceCount;
+    address internal featsAddr;
 
     mapping(address=>User) public userMap; // used for address(0) and ownership checks
 
@@ -56,19 +32,21 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     mapping(uint=>bool) private graduatedNFTs; // "pops" a warmUp NFT and upgrades it to a RaceNFT. URI relies on this.
     mapping(uint=>uint) private tokenIdToRaceId; // gates access to uncompleted races. URI relies on this.
 
-
-    User[] public users; // stores all users
-
     error IncorrectSubmission();
-    event UserCreated(address indexed who, uint indexed id);
+
+    event RaceCreated(uint indexed id);
+    event UserCreated(address indexed who, uint indexed ccID);
+    event RaceCompleted(address indexed who, uint indexed raceID, uint indexed ccID);
+    event RaceStarted(address indexed who, uint indexed raceID, uint indexed ccID);
 
 
     /**
         * @dev hashes are imprinted into finalRaceNFTs for comparison for submissions.
         * @param dunno bytes32[] of hashes for the initial round of race content.
      */
-    constructor(bytes32[] memory dunno) ERC721("GhostsOfEpochsPast", "Ghosts") payable {
+    constructor(bytes32[] memory dunno) ERC721("GhostsOfEpochs", "Ghosts") payable {
         uint len = dunno.length;
+        raceCount = len;
         for(uint x = 0; x < len; x++){
             finalRaceNfts[x] = RaceNFT({
                 submittedAnswers: bytes32('0x'),
@@ -84,59 +62,36 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
 
     /////////////////////////////////
     ///                           ///
-    ///          GETTERS          ///
-    ///                           ///
-    /////////////////////////////////
-
-    function ccGetMetadata(uint profileId) public view returns (string memory) {
-        return ProfileNFT.getMetadata(profileId);
-    }
-
-    function ccGetAvatar(uint profileId) public view returns (string memory) {
-        return ProfileNFT.getAvatar(profileId);
-    }
-
-    function ccGetSubNFTAddr(uint profileId) public view returns (address) {
-        return ProfileNFT.getSubscribeNFT(profileId);
-    }
-
-    function ccGetSubURI(uint profileId) public view returns (string memory) {
-        return ProfileNFT.getSubscribeNFTTokenURI(profileId);
-    }
-
-    function ccGetEssNFTAddr(uint profileId, uint essId) public view returns (address) {
-        return ProfileNFT.getEssenceNFT(profileId, essId);
-    }
-
-    function ccGetEssURI(uint profileId, uint essId) public view returns (string memory) {
-        return ProfileNFT.getEssenceNFTTokenURI(profileId, essId);
-    }
-
-
-    /////////////////////////////////
-    ///                           ///
     ///     External Functions    ///
     ///                           ///
     /////////////////////////////////
 
+    function getUser(address who) external returns(User memory) {
+        return userMap[who];
+    }
+
+    function setFeatsAddr(address where) external onlyOwner {
+        featsAddr = where;
+    }
+
     /**
-        * @dev relies on the owner supplying the correct length of the current supply of race content (mapping len)
         * @param races of race content hashes
-        * @param length of the current raceNFTs mapping (amount of active races)
      */
-    function addRaces(bytes32[] memory races, uint length) external onlyOwner {
-        uint len = races.length - 1;
-        uint newlen = length + len;
-        for(uint x = length;newlen > len; --x){
+    function addRaces(bytes32[] memory races) external onlyOwner {
+        uint r = raceCount;
+        uint s = races.length;
+        for(uint x = r; x < r; ++x){
             finalRaceNfts[x] = RaceNFT({
-                submittedAnswers: bytes32('0x'),
-                answer: races[x],
-                performance: 0,
-                currentTaskId: x,
-                tokenId: x,
-                userAddress: address(0)
-            });
+                    submittedAnswers: bytes32('0x'),
+                    answer: races[x],
+                    performance: 0,
+                    currentTaskId: x,
+                    tokenId: x,
+                    userAddress: address(0)
+                });
+
         }
+        raceCount += s;
     }
 
     /**
@@ -145,7 +100,6 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     function setBaseURI(string calldata uri) external onlyOwner {
         tokenBaseURI = uri;
     }
-
 
     /**
         * @dev Metadata is reliant on graduatedNFTs[id] checks
@@ -171,7 +125,6 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         * @param hashes of profiles hash[0]: avatar, hash[1]: metadata
      */
     function createUser(string memory handle, string[] memory hashes) external {
-        uint id = _userCounter.current();
         _userCounter.increment();
         
         DataTypes.CreateProfileParams memory params;
@@ -192,13 +145,12 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
             0, // spotTheBugs
             0, // contentPosts
             0, // ctfStbContribs
-            ccID // CyberConnect Profile ID
+            ccID, // CyberConnect Profile ID
+            _userCounter.current() // Ghosts User ID
         );
-
-        users.push(user);
         userMap[msg.sender] = user;
 
-        emit UserCreated(msg.sender, id);
+        emit UserCreated(msg.sender, ccID);
     }
 
     /**
@@ -222,10 +174,12 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         tokenIdToRaceId[nextId] = currentRace;
 
         if(balanceOf(msg.sender) == 0){
-            safeMint(msg.sender);    
+            safeMint(msg.sender);
+            emit RaceStarted(msg.sender, currentRace, user.ccID);
         }else{
             require(balanceOf(msg.sender) == user.raceId, "Finish your active race first.");
             safeMint(msg.sender);
+            emit RaceStarted(msg.sender, currentRace, user.ccID);
         }
     }
 
@@ -235,7 +189,7 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         * @param answers of user total user submissions. The hash of the hashes of individual answers.
         * @param metadata with additional info regarding user performances etc for CC.
      */
-    function submitCompletedTask(bytes32 answers, uint perf, string memory metadata) external {
+    function submitCompletedTask(bytes32 answers, uint perf, string calldata metadata) external {
         User storage user = userMap[msg.sender];
         require(user.userAddress != address(0) , "No User Account");
         require(balanceOf(msg.sender) != 0 , "cannot submit a task without the warmUp NFT");
@@ -250,13 +204,15 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         if(answers != raceNFT.answer) {
             revert IncorrectSubmission();
         }else{
+            emit RaceCompleted(msg.sender, user.raceId, user.ccID);
+
             delete warmUpNFTs[msg.sender];
             graduatedNFTs[warmUp.tokenId] = true;
             user.raceId += 1;
             user.completedTasks++;
 
             uint currentPerformance = user.performance;
-            uint newPerformance = (currentPerformance + perf) / user.completedTasks;
+            uint newPerformance = (currentPerformance + perf) / raceCount;
             user.performance = newPerformance;
 
             RaceNFT memory completedNFT = RaceNFT({
@@ -269,71 +225,11 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
             });
 
             raceNFTs[msg.sender] = completedNFT;
-            ProfileNFT.setMetadata(user.ccID, metadata);
+            _ccSetMetadata(user.ccID, metadata);
         }
     }
 
-    function ccSubscribe(uint256[] calldata profileIDs) external {
-        _ccSubscribe(profileIDs, msg.sender);
-    }
-
-        /**
-        * @dev sets the namespace owner of the ProfileNFT to the provided address.
-        * @param addr of new namespace owner
-     */
-    function ccSetNSOwner(address addr) external {
-        ProfileNFT.setNamespaceOwner(addr);
-    }
-
-    function ccRegEssence(
-        uint profileId,
-        string calldata name,
-        string calldata symbol,
-        string calldata essenceURI,
-        address essenceMw, 
-        bool transferable,
-        bool deployAtReg,
-        address essBeacon
-    ) external {
-        DataTypes.RegisterEssenceParams memory params;
-
-        params.profileId = profileId;
-        params.name = name;
-        params.symbol = symbol;
-        params.essenceTokenURI = essenceURI;
-        params.essenceMw = essenceMw;
-        params.transferable = transferable;
-        params.deployAtRegister = deployAtReg;
-
-        _ccRegEssence(params);
-    }
-
-    function ccCollectEss(
-        address who, uint profileId, uint essenceId
-    ) external {
-        DataTypes.CollectParams memory params;
-        params.collector = who;
-        params.profileId = profileId;
-        params.essenceId = essenceId;
-
-        _ccCollectEss(params);
-    }
-
-    function ccSetMetadata(uint profileId, string calldata metadata) external {
-        _ccSetMetadata(profileId, metadata);
-    }
-
-    function ccSetSubData(uint profileId, string calldata uri, address mw, bytes calldata mwData) external {
-        _ccSetSubData(profileId, uri, mw, mwData);
-    }
-
-    function ccSetEssData(uint profileId, uint essId, string calldata uri, address mw, bytes calldata mwData) external {
-        _ccSetEssData(profileId, essId, uri, mw, mwData);
-    }
-
-    function ccSetPrimary(uint profileId) external {
-        _ccSetPrimary(profileId);
-    }
+    
 
     /////////////////////////////////
     ///                           ///
@@ -351,40 +247,6 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         _safeMint(to, tokenId);
     }
 
-    function _ccSubscribe(uint256[] calldata profileIDs, address who) internal {
-        DataTypes.SubscribeParams memory params;
-        params.subscriber = who;
-        params.profileIds = profileIDs;
-        bytes[] memory initData;
-        
-        ProfileNFT.subscribe(params, initData, initData); 
-    }
-
-    function _ccRegEssence(
-        DataTypes.RegisterEssenceParams memory params
-        ) internal {
-        ProfileNFT.registerEssence(params, '');
-    }
-
-    function _ccCollectEss(DataTypes.CollectParams memory params) internal {
-        ProfileNFT.collect(params, '', '');
-    }
-
-    function _ccSetMetadata(uint profileId, string calldata metadata) internal {
-        ProfileNFT.setMetadata(profileId, metadata); 
-    }
-
-    function _ccSetSubData(uint profileId, string calldata uri, address mw, bytes calldata mwData) internal {
-        ProfileNFT.setSubscribeData(profileId, uri, mw, mwData);
-    }
-
-    function _ccSetEssData(uint profileId, uint essId, string calldata uri, address mw, bytes calldata mwData) internal {
-        ProfileNFT.setEssenceData(profileId, essId, uri, mw, mwData);
-    }
-
-    function _ccSetPrimary(uint profileId) internal {
-        ProfileNFT.setPrimaryProfile(profileId);
-    }
 
     function _baseURI() internal view override returns (string memory) {
         return tokenBaseURI;

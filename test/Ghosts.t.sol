@@ -23,7 +23,7 @@ contract GhostsTest is Test {
         vm.deal(user4, 10 ether);
         vm.startPrank(user1);
         
-        bytes32[] memory answers = new bytes32[](10);
+        bytes32[] memory answers = new bytes32[](4);
         answers[0] = 0xbfa17807147311c915e5edfc6f73dc05a30eeda3aa16ce069a8b823a5ce31276;
         answers[1] = 0x47d6c2e892d5fcccee0f0f709099f4bede9338e572cd32b514241874300f777e;
         answers[2] = 0x048ad91aa2911660d1c9d2f885090ec56e3334cdb30970a7fc9fa7195f440cc4;
@@ -35,7 +35,7 @@ contract GhostsTest is Test {
     function test_CreateUser() external {
         createUser();
 
-        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user1);
 
         assertEq(user1, addr);
         assertTrue(ccID != 0);
@@ -45,7 +45,7 @@ contract GhostsTest is Test {
     function test_StartNextRace() external {
         createUser();
 
-        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user1);
 
         assertEq(raceId, 0);
 
@@ -68,13 +68,13 @@ contract GhostsTest is Test {
 
         string memory uriToken = ghosts.tokenURI(2);
 
-        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user1);
 
         assertEq(uriToken, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/WarmUpNFT2.json");
         assertEq( ghosts.balanceOf(user1), 2);
         assertEq(raceId, 1);
         assertEq(comTask, 1);
-        assertEq(perf, 100);
+        assertEq(perf, 25);
 
         ghosts.submitCompletedTask(0x47d6c2e892d5fcccee0f0f709099f4bede9338e572cd32b514241874300f777e, 100, 'lol');
         string memory uriTokenNew = ghosts.tokenURI(2);
@@ -113,8 +113,7 @@ contract GhostsTest is Test {
         bytes32[] memory ass = new bytes32[](2);
         ass[0] = a;
         ass[1] = aa;
-
-        ghosts.addRaces(ass, 0);
+        ghosts.addRaces(ass);
 
         ( bytes32 submittedAnswers,
         bytes32 answer,
@@ -156,7 +155,7 @@ contract GhostsTest is Test {
     function test_SetURI() external {
         createUser();
 
-        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user1);
 
         string memory oldUri = ghosts.tokenURI(1);
         ghosts.setBaseURI("www.ipfs.com/");
