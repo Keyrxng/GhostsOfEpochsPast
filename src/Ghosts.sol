@@ -8,7 +8,7 @@ import "@openzeppelin/access/Ownable.sol";
 import "@openzeppelin/utils/Counters.sol";
 import "@openzeppelin/utils/Strings.sol";
 import {DataTypes, IProfileNFT} from "./interfaces/IProfileNFT.sol";
-import {IGhosts} from './interfaces/IGhosts.sol';
+import {IGhosts, IGhostsData} from './interfaces/IGhosts.sol';
 import {GhostsFeats} from './GhostsFeats.sol';
 
 contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
@@ -24,12 +24,12 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
     uint internal raceCount;
     address internal featsAddr;
 
-    mapping(address=>IGhosts.User) public userMap; // used for address(0) and ownership checks
+    mapping(address=>IGhostsData.User) public userMap; // used for address(0) and ownership checks
 
-    mapping(address=>IGhosts.WarmUpNFT) private warmUpNFTs; // used to store the User's current Warmup NFT (if any)
-    mapping(address=>IGhosts.RaceNFT) private raceNFTs; // used to store the User's current Race NFT (if any)
+    mapping(address=>IGhostsData.WarmUpNFT) private warmUpNFTs; // used to store the User's current Warmup NFT (if any)
+    mapping(address=>IGhostsData.RaceNFT) private raceNFTs; // used to store the User's current Race NFT (if any)
 
-    mapping(uint=>IGhosts.RaceNFT) public finalRaceNfts; // stores the final race NFT for each race to compare against
+    mapping(uint=>IGhostsData.RaceNFT) public finalRaceNfts; // stores the final race NFT for each race to compare against
 
     mapping(uint=>bool) private graduatedNFTs; // "pops" a warmUp NFT and upgrades it to a RaceNFT. URI relies on this.
     mapping(uint=>uint) private tokenIdToRaceId; // gates access to uncompleted races. URI relies on this.
@@ -50,7 +50,7 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
         uint len = dunno.length;
         raceCount = len;
         for(uint x = 0; x < len; x++){
-            finalRaceNfts[x] = IGhosts.RaceNFT({
+            finalRaceNfts[x] = IGhostsData.RaceNFT({
                 submittedAnswers: bytes32('0x'),
                 answer: dunno[x],
                 performance: 0,
@@ -69,7 +69,7 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
     ///                           ///
     /////////////////////////////////
 
-    function getGhostsProfile(address who) public view returns(IGhosts.User memory) {
+    function getGhostsProfile(address who) public view returns(IGhostsData.User memory) {
         return userMap[who];
     }
 
@@ -84,7 +84,7 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
         uint r = raceCount;
         uint s = races.length;
         for(uint x = r; x < r; ++x){
-            finalRaceNfts[x] = IGhosts.RaceNFT({
+            finalRaceNfts[x] = IGhostsData.RaceNFT({
                     submittedAnswers: bytes32('0x'),
                     answer: races[x],
                     performance: 0,
@@ -140,7 +140,7 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
         ProfileNFT.createProfile(params, '','');
         uint ccID = ProfileNFT.getProfileIdByHandle(handle);
 
-        IGhosts.User memory user = IGhosts.User(
+        IGhostsData.User memory user = IGhostsData.User(
             msg.sender,
             0, // raceId
             0, // completedTasks
@@ -164,10 +164,10 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
      
     function startNextRace() external {
         require(userMap[msg.sender].userAddress != address(0) , "No User Account");
-        IGhosts.User memory user = userMap[msg.sender];
+        IGhostsData.User memory user = userMap[msg.sender];
         uint currentRace = user.raceId;
         uint nextId = (_tokenIdCounter.current() + 1);
-        IGhosts.WarmUpNFT memory warmUp = IGhosts.WarmUpNFT({
+        IGhostsData.WarmUpNFT memory warmUp = IGhostsData.WarmUpNFT({
             userAddress: msg.sender,
             currentTaskId: currentRace,
             submittedAnswers: bytes32('0x'),
@@ -193,14 +193,14 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
         * @param metadata with additional info regarding user performances etc for CC.
      */
     function submitCompletedTask(bytes32 answers, uint perf, string calldata metadata) external {
-        IGhosts.User storage user = userMap[msg.sender];
+        IGhostsData.User storage user = userMap[msg.sender];
         require(user.userAddress != address(0) , "No User Account");
         require(balanceOf(msg.sender) != 0 , "cannot submit a task without the warmUp NFT");
 
 
-        IGhosts.WarmUpNFT memory warmUp = warmUpNFTs[msg.sender];
+        IGhostsData.WarmUpNFT memory warmUp = warmUpNFTs[msg.sender];
 
-        IGhosts.RaceNFT memory raceNFT = finalRaceNfts[warmUp.currentTaskId];
+        IGhostsData.RaceNFT memory raceNFT = finalRaceNfts[warmUp.currentTaskId];
 
         warmUp.submittedAnswers = answers;
 
@@ -218,7 +218,7 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
             uint newPerformance = (currentPerformance + perf) / raceCount;
             user.performance = newPerformance;
 
-            IGhosts.RaceNFT memory completedNFT = IGhosts.RaceNFT({
+            IGhostsData.RaceNFT memory completedNFT = IGhostsData.RaceNFT({
                 submittedAnswers: answers,
                 answer: answers,
                 performance: perf,

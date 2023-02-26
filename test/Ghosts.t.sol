@@ -12,18 +12,17 @@ contract GhostsTest is Test {
     address public user1;
     address public user2;
     address public user3;
-    address public user4;
+    address public immutable user4 = 0x45484441b8f59a0245a71aa5437C994f982056C0;
 
     function setUp() public {
         user1 = vm.addr(0x11);
         user2 = vm.addr(0x12);
         user3 = vm.addr(0x13);
-        user4 = vm.addr(0x14);
         vm.deal(user1, 10 ether);
         vm.deal(user2, 10 ether);
         vm.deal(user3, 10 ether);
         vm.deal(user4, 10 ether);
-        vm.startPrank(user1);
+        vm.startPrank(user4);
         
         bytes32[] memory answers = new bytes32[](4);
         answers[0] = 0xbfa17807147311c915e5edfc6f73dc05a30eeda3aa16ce069a8b823a5ce31276;
@@ -31,35 +30,35 @@ contract GhostsTest is Test {
         answers[2] = 0x048ad91aa2911660d1c9d2f885090ec56e3334cdb30970a7fc9fa7195f440cc4;
         answers[3] = 0x88ed3ec42dab95394f28600182a62493e05b714842e7f5cc236296486adb2a31;
 
-        ghosts = new Ghosts(answers);
-
+        ghosts = Ghosts(0x529974ff310b80d8385536669eA06b88F7b041b4);
     }
 
     function test_CreateUser() external {
-        createUser();
+        string[] memory hashes = new string[](2);
+        hashes[0] = 'lol';
+        hashes[1] = 'sdasd';
+        ghosts.createUser('lol', hashes);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user4);
 
-        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user1);
-
-        assertEq(user1, addr);
+        assertEq(addr, user4);
         assertTrue(ccID != 0);
         console.log("ccId", ccID);
     }
 
     function test_StartNextRace() external {
-        createUser();
-
-        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user1);
+        ghosts.startNextRace();
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user4);
 
         assertEq(raceId, 0);
 
-        assertEq(ghosts.balanceOf(user1), 1);
+        assertEq(ghosts.balanceOf(user4), 1);
     }
 
     function test_SubmitRace() external {
-        createUser();
+        ghosts.startNextRace();
         string memory tokenURI = ghosts.tokenURI(1);
 
-        ghosts.submitCompletedTask(0xbfa17807147311c915e5edfc6f73dc05a30eeda3aa16ce069a8b823a5ce31276, 100, 'lol');
+        ghosts.submitCompletedTask(0xadf59b14a10202483be9b35910d14fb9bc77143daed067681694e61933cc9441, 100, 'lol');
         vm.warp(1);
         vm.roll(1);
         string memory tokenURINew = ghosts.tokenURI(1);
@@ -71,15 +70,15 @@ contract GhostsTest is Test {
 
         string memory uriToken = ghosts.tokenURI(2);
 
-        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user4);
 
         assertEq(uriToken, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/WarmUpNFT2.json");
-        assertEq( ghosts.balanceOf(user1), 2);
+        assertEq( ghosts.balanceOf(user4), 2);
         assertEq(raceId, 1);
         assertEq(comTask, 1);
-        assertEq(perf, 25);
+        assertEq(perf, 14);
 
-        ghosts.submitCompletedTask(0x47d6c2e892d5fcccee0f0f709099f4bede9338e572cd32b514241874300f777e, 100, 'lol');
+        ghosts.submitCompletedTask(0xec553c39b395ed4e9f6c6b782d68087d16410c651001f38b158de7b9703b52f6, 100, 'lol');
         string memory uriTokenNew = ghosts.tokenURI(2);
         assertEq(uriTokenNew, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/RaceNFT2.json");
 
@@ -125,10 +124,11 @@ contract GhostsTest is Test {
         uint tokenId,
         address userAddress
         ) = ghosts.finalRaceNfts(0);
-
-        createUser();
+console.log("step1");
+        ghosts.startNextRace();
 
         string memory tokenURI = ghosts.tokenURI(1);
+console.log("step1");
 
         bytes32 ans = keccak256(abi.encodePacked(
             bytes32(0xe90b7bceb6e7df5418fb78d8ee546e97c83a08bbccc01a0644d599ccd2a7c2e0),
@@ -141,7 +141,7 @@ contract GhostsTest is Test {
             bytes32(0xc3a24b0501bd2c13a7e57f2db4369ec4c223447539fc0724a9d55ac4a06ebd4d)
         ));
 
-        ghosts.submitCompletedTask(ans, 100, 'lol');
+        ghosts.submitCompletedTask(0xadf59b14a10202483be9b35910d14fb9bc77143daed067681694e61933cc9441, 100, 'lol');
         vm.warp(1);
         vm.roll(1);
         string memory tokenURINew = ghosts.tokenURI(1);
@@ -156,9 +156,9 @@ contract GhostsTest is Test {
     }
 
     function test_SetURI() external {
-        createUser();
+        ghosts.startNextRace();
 
-        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user1);
+        (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user4);
 
         string memory oldUri = ghosts.tokenURI(1);
         ghosts.setBaseURI("www.ipfs.com/");
@@ -167,29 +167,34 @@ contract GhostsTest is Test {
         assertEq(newUri, "www.ipfs.com/WarmUpNFT1.json");
     }
 
-    function test_CreateAchievements() external {
-        createUser();
+    function test_AchievementCreated() external {
+        ghosts.startNextRace();
 
         (uint ccID,,,,) = ghosts.getUser(user1);
 
-        ghosts.createAchievements(ccID, "Anti-Social Auditor", "GFEATS", "ipfs://hash", address(this), "Description..>", 10, 1);
+        address essenceAddr = ghosts.ccGetEssNFTAddr(391, 1);
 
         (bytes memory name, bytes memory desc, bytes memory imageUrl, uint256 weight, uint256 essId, uint16 essTier, uint earnedAt) = ghosts.feats(1);
         
         console.log("name", string(name));
-
-        assertTrue(ccID > 0);
-        assertTrue(essId > 0);
+        console.log("desc", string(desc));
+        console.log("imageUrl", string(imageUrl));
+        console.log("weight", weight);
+        console.log("essenceId", essId);
+        console.log("essenceTier", essTier);
+        console.log("earnedAt", earnedAt);
+        console.log("essenceAddr", essenceAddr);
+        
+        assertTrue(essenceAddr != address(0));
 
     }
 
-    function createUser() internal {
+    function createUser(string memory name) internal {
         string[] memory hashes = new string[](2);
         hashes[0] = "QmVySRNQ2vagMzF22YCc9ymCmm32aPQvTPxWNWTW8enpft";
         hashes[1] = "QmaEJ4R7D9UXz47JMndnj4jsMzoz3GhzZ3xqQEwiJYGaWp";
 
-
-        ghosts.createUser("@Keyrxng", hashes);
+        ghosts.createUser(name, hashes);
         ghosts.startNextRace();
     }
 

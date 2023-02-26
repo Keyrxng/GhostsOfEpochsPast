@@ -65,7 +65,7 @@ contract GhostsFeats  {
         ) public {
         uint essID = ccRegEssence(ccID, name, symbol, essenceURI, address(0), true, true);
 
-        uint256 featID = featsMasterList.length;
+        uint256 featID = featsMasterList.length + 1;
 
         Feat memory feat = Feat({
             name: bytes(name),

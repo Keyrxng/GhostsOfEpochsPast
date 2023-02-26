@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.9;
 
-interface IGhosts {
-   
+interface IGhostsData {
     struct User {
         address userAddress; // user address
         uint raceId; // the race they are currently on
@@ -31,11 +30,13 @@ interface IGhosts {
         uint tokenId;
         address userAddress;
     }
+}
+interface IGhosts {    
 
         function createUser(string memory handle, string[] memory hashes) external;
         function startNextRace() external;
         function submitCompletedTask(bytes32 answers, uint perf, string calldata metadata) external;
-        function getGhostsProfile(address who) external returns(User memory);
+        function getGhostsProfile(address who) external returns(IGhostsData.User memory);
          function ccGetMetadata(uint256 profileId)
         external
         view
