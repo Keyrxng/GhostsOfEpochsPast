@@ -23,6 +23,7 @@ contract GhostsFeats  {
     IGhostsData.Feat[] public featsMasterList; // list of feats
     mapping(uint256 => IGhostsData.Feat) public feats; // feat ID => feat data
     mapping(address => IGhostsData.UserFeats) public getUser; // stores the list of feats for each user
+    mapping(address => IGhostsData.Feat[]) public earnedFeats; // feat ID => feat data
 
     mapping(address => mapping(uint=>uint)) public addrToFeatToTiers; // user > featId > tier
     mapping(address => mapping(bytes32=>uint)) internal protocolActions; // allow protocol data to be stored in mapping
@@ -136,8 +137,7 @@ contract GhostsFeats  {
         * @param userAddr the user's address
      */
     function userAwardFeats(uint featId, uint tier, address userAddr, uint profileId) internal {
-        require(featId < featsMasterList.length, "featId out of range");
-        IGhostsData.Feat storage feat = feats[featId];
+        IGhostsData.Feat memory feat = feats[featId];
         IGhostsData.UserFeats storage u = getUser[userAddr];
 
         if(u.userAddress == address(0)){
@@ -148,13 +148,16 @@ contract GhostsFeats  {
                 followerCount: 0,
                 commentCount: 0,
                 consumeCount: 0,
-                createCount: 0,
-                feats: new IGhostsData.Feat[](0)
+                createCount: 0
             });
             getUser[userAddr] = newUser;
             delete newUser;
             return;
-        }
+        }else{
+
+        
+        require(featId < featsMasterList.length, "featId out of range");
+
 
         if(addrToFeatToTiers[userAddr][featId] >= tier) {
             return;
@@ -162,15 +165,16 @@ contract GhostsFeats  {
 
         uint256 profileId = ghostsCCID; // get users raceID
 
-        IGhostsData.Feat storage tmp = featsMasterList[featId];
+        IGhostsData.Feat memory tmp = featsMasterList[featId];
         tmp.earnedAt = block.timestamp;
         tmp.essTier = uint16(tier);
 
         addrToFeatToTiers[userAddr][featId] = tier;
 
-        u.feats.push(tmp);
+        earnedFeats[userAddr].push(tmp);
 
         ccCollectEss(userAddr, profileId, feat.essId);
+    }
     }
 
      /**

@@ -36,7 +36,7 @@ contract GhostsTest is Test {
         string[] memory hashes = new string[](2);
         hashes[0] = 'lol';
         hashes[1] = 'sdasd';
-        ghosts.createUser('lol', hashes);
+        ghosts.createUser('lollkdasajd', hashes);
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user4);
 
         assertEq(addr, user4);
@@ -45,6 +45,10 @@ contract GhostsTest is Test {
     }
 
     function test_StartNextRace() external {
+        string[] memory hashes = new string[](2);
+        hashes[0] = 'lol';
+        hashes[1] = 'sdasd';
+        ghosts.createUser('lollkdasajd', hashes);
         ghosts.startNextRace();
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user4);
 
@@ -54,6 +58,10 @@ contract GhostsTest is Test {
     }
 
     function test_SubmitRace() external {
+        string[] memory hashes = new string[](2);
+        hashes[0] = 'lol';
+        hashes[1] = 'sdasd';
+        ghosts.createUser('lollkdasajd', hashes);
         ghosts.startNextRace();
         string memory tokenURI = ghosts.tokenURI(1);
 
@@ -90,6 +98,10 @@ contract GhostsTest is Test {
     }
 
     function test_AddRaces() external {
+        string[] memory hashes = new string[](2);
+        hashes[0] = 'lol';
+        hashes[1] = 'sdasd';
+        ghosts.createUser('lollkdasajd', hashes);
         bytes32 a = keccak256(abi.encodePacked(
             bytes32(0x8a35acfbc15ff81a39ae7d344fd709f28e8600b4aa8c65c6b64bfe7fe36bd19b),
             bytes32(0x392791df626408017a264f53fde61065d5a93a32b60171df9d8a46afdf82992d),
@@ -155,6 +167,10 @@ console.log("step1");
     }
 
     function test_SetURI() external {
+        string[] memory hashes = new string[](2);
+        hashes[0] = 'lol';
+        hashes[1] = 'sdasd';
+        ghosts.createUser('lollkdasajd', hashes);
         ghosts.startNextRace();
 
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user4);
@@ -167,6 +183,10 @@ console.log("step1");
     }
 
     function test_AchievementCreated() external {
+        string[] memory hashes = new string[](2);
+        hashes[0] = 'lol';
+        hashes[1] = 'sdasd';
+        ghosts.createUser('lollkdasajd', hashes);
         ghosts.startNextRace();
 
         (,uint ccID,,,,,) = ghosts.getUser(user4);

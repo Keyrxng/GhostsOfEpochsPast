@@ -53,7 +53,6 @@ interface IGhostsData {
         uint commentCount; // number of comments this user has made
         uint consumeCount; // number of pieces of content consumed
         uint createCount; // number of pieces of content created
-        Feat[] feats; // list of owned feats
     }
 }
 interface IGhosts {    

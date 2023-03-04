@@ -176,7 +176,7 @@ contract Ghosts is GhostsFeats, IERC721Receiver, ERC721, ERC721Enumerable, ERC72
         );
         userMap[msg.sender] = user;
         idToUser[id] = user;
-        // userAwardFeats(1, 1, msg.sender, ccID);
+        userAwardFeats(1, 1, msg.sender, ccID);
         emit UserCreated(msg.sender, ccID);
     }
 
