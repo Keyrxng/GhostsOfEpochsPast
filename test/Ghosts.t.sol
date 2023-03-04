@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "../src/Ghosts.sol";
 import "../src/GhostsFeats.sol";
-import "../src/GhostsHub.sol";
 
 contract GhostsTest is Test {
     Ghosts public ghosts;
@@ -30,7 +29,7 @@ contract GhostsTest is Test {
         answers[2] = 0x048ad91aa2911660d1c9d2f885090ec56e3334cdb30970a7fc9fa7195f440cc4;
         answers[3] = 0x88ed3ec42dab95394f28600182a62493e05b714842e7f5cc236296486adb2a31;
 
-        ghosts = Ghosts(0x529974ff310b80d8385536669eA06b88F7b041b4);
+        ghosts = new Ghosts(answers);
     }
 
     function test_CreateUser() external {
@@ -49,16 +48,16 @@ contract GhostsTest is Test {
         ghosts.startNextRace();
         (address addr, uint raceId, uint comTask, uint perf, uint stbs, uint posts, uint contribs, uint ccID, uint ghostsID) = ghosts.userMap(user4);
 
-        assertEq(raceId, 0);
+        assertEq(raceId, 2);
 
-        assertEq(ghosts.balanceOf(user4), 1);
+        assertEq(ghosts.balanceOf(user4), 3);
     }
 
     function test_SubmitRace() external {
         ghosts.startNextRace();
         string memory tokenURI = ghosts.tokenURI(1);
 
-        ghosts.submitCompletedTask(0xadf59b14a10202483be9b35910d14fb9bc77143daed067681694e61933cc9441, 100, 'lol');
+        ghosts.submitCompletedTask(0xadf59b14a10202483be9b35910d14fb9bc77143daed067681694e61933cc9441, 100);
         vm.warp(1);
         vm.roll(1);
         string memory tokenURINew = ghosts.tokenURI(1);
@@ -78,12 +77,12 @@ contract GhostsTest is Test {
         assertEq(comTask, 1);
         assertEq(perf, 14);
 
-        ghosts.submitCompletedTask(0xec553c39b395ed4e9f6c6b782d68087d16410c651001f38b158de7b9703b52f6, 100, 'lol');
+        ghosts.submitCompletedTask(0xec553c39b395ed4e9f6c6b782d68087d16410c651001f38b158de7b9703b52f6, 100);
         string memory uriTokenNew = ghosts.tokenURI(2);
         assertEq(uriTokenNew, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/RaceNFT2.json");
 
         vm.expectRevert();
-        ghosts.submitCompletedTask(0x47d6c2e892d5fcccee0f0f709099f4bede9338e572cd32b514241874300f777e, 100, 'lol');
+        ghosts.submitCompletedTask(0x47d6c2e892d5fcccee0f0f709099f4bede9338e572cd32b514241874300f777e, 100);
 
         ghosts.startNextRace();
         vm.expectRevert();
@@ -141,7 +140,7 @@ console.log("step1");
             bytes32(0xc3a24b0501bd2c13a7e57f2db4369ec4c223447539fc0724a9d55ac4a06ebd4d)
         ));
 
-        ghosts.submitCompletedTask(0xadf59b14a10202483be9b35910d14fb9bc77143daed067681694e61933cc9441, 100, 'lol');
+        ghosts.submitCompletedTask(0x048ad91aa2911660d1c9d2f885090ec56e3334cdb30970a7fc9fa7195f440cc4, 100);
         vm.warp(1);
         vm.roll(1);
         string memory tokenURINew = ghosts.tokenURI(1);
@@ -163,18 +162,18 @@ console.log("step1");
         string memory oldUri = ghosts.tokenURI(1);
         ghosts.setBaseURI("www.ipfs.com/");
         string memory newUri = ghosts.tokenURI(1);
-        assertEq(oldUri, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/WarmUpNFT1.json");
-        assertEq(newUri, "www.ipfs.com/WarmUpNFT1.json");
+        assertEq(oldUri, "ipfs://QmU3hHax9mtBJcWD3JvS2uDSdpvjATCWkdR3kwxEfg54bw/RaceNFT1.json");
+        assertEq(newUri, "www.ipfs.com/RaceNFT1.json");
     }
 
     function test_AchievementCreated() external {
         ghosts.startNextRace();
 
-        (uint ccID,,,,) = ghosts.getUser(user1);
+        (,uint ccID,,,,,) = ghosts.getUser(user4);
 
-        address essenceAddr = ghosts.ccGetEssNFTAddr(391, 1);
+        address essenceAddr = ghosts.ccGetEssNFTAddr(ccID, 1);
 
-        (bytes memory name, bytes memory desc, bytes memory imageUrl, uint256 weight, uint256 essId, uint16 essTier, uint earnedAt) = ghosts.feats(1);
+        (bytes memory name, bytes memory desc, bytes memory imageUrl, uint256 weight, uint256 essId, uint16 essTier, uint earnedAt) = ghosts.feats(0);
         
         console.log("name", string(name));
         console.log("desc", string(desc));
@@ -184,8 +183,10 @@ console.log("step1");
         console.log("essenceTier", essTier);
         console.log("earnedAt", earnedAt);
         console.log("essenceAddr", essenceAddr);
-        
+
         assertTrue(essenceAddr != address(0));
+
+        ghosts.awardAchievements(user4, ccID);
 
     }
 

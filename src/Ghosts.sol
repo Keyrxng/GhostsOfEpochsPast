@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/token/ERC721/ERC721.sol";
-import "@openzeppelin/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/token/ERC721/extensions/ERC721Burnable.sol";
-import "@openzeppelin/access/Ownable.sol";
-import "@openzeppelin/utils/Counters.sol";
-import "@openzeppelin/utils/Strings.sol";
+import {ERC721} from "@openzeppelin/token/ERC721/ERC721.sol";
+import {IERC721} from "@openzeppelin/token/ERC721/IERC721.sol";
+import {Ownable} from "@openzeppelin/access/Ownable.sol";
+import {ERC721Enumerable} from "@openzeppelin/token/ERC721/extensions/ERC721Enumerable.sol";
+import {ERC721Burnable} from "@openzeppelin/token/ERC721/extensions/ERC721Burnable.sol";
+import {Counters} from "@openzeppelin/utils/Counters.sol";
+import {Strings} from "@openzeppelin/utils/Strings.sol";
+import "@openzeppelin/token/ERC721/IERC721Receiver.sol";
+
 import {DataTypes, IProfileNFT} from "./interfaces/IProfileNFT.sol";
 import {IGhosts, IGhostsData} from './interfaces/IGhosts.sol';
 import {GhostsFeats} from './GhostsFeats.sol';
 
-contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
+
+contract Ghosts is GhostsFeats, IERC721Receiver, ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     using Counters for Counters.Counter;
     using Strings for uint256;
     Counters.Counter private _tokenIdCounter;
@@ -22,10 +26,9 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
 
     string public tokenBaseURI;
     uint internal raceCount;
-    address internal featsAddr;
 
     mapping(address=>IGhostsData.User) public userMap; // used for address(0) and ownership checks
-
+    mapping(uint=>IGhostsData.User) public idToUser; 
     mapping(address=>IGhostsData.WarmUpNFT) private warmUpNFTs; // used to store the User's current Warmup NFT (if any)
     mapping(address=>IGhostsData.RaceNFT) private raceNFTs; // used to store the User's current Race NFT (if any)
 
@@ -35,6 +38,8 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
     mapping(uint=>uint) private tokenIdToRaceId; // gates access to uncompleted races. URI relies on this.
 
     error IncorrectSubmission();
+    error AccountExists(address who, uint ccID);
+    error AlreadySubmitted(uint raceID);
 
     event RaceCreated(uint indexed id);
     event UserCreated(address indexed who, uint indexed ccID);
@@ -69,12 +74,23 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
     ///                           ///
     /////////////////////////////////
 
-    function getGhostsProfile(address who) public view returns(IGhostsData.User memory) {
-        return userMap[who];
+
+    function ccGhostMaker(string memory ghosts, string[] memory hashes) external onlyOwner {
+        uint id = createGhostsCC(ghosts, hashes, address(this));
+        ghostsCCID = id;
     }
 
-    function setFeatsAddr(address where) external onlyOwner {
-        featsAddr = where;
+    function ccAchievementMaker(
+        string calldata name,
+        string calldata symbol,
+        string[] calldata essenceURI,
+        string calldata description,
+        uint16 weight,
+        uint16 tier
+    ) external onlyOwner {
+        for(uint x = 0; x < essenceURI.length; ++x){
+        createAchievements(name, symbol, essenceURI[x], description, weight , tier);
+        }
     }
 
     /**
@@ -128,6 +144,12 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
         * @param hashes of profiles hash[0]: avatar, hash[1]: metadata
      */
     function createUser(string memory handle, string[] memory hashes) external {
+        uint ccID = userMap[msg.sender].ccID;
+
+        if(ccID != 0){
+            revert AccountExists(msg.sender, ccID);
+        }
+
         _userCounter.increment();
         
         DataTypes.CreateProfileParams memory params;
@@ -138,7 +160,8 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
         params.operator = address(this);
 
         ProfileNFT.createProfile(params, '','');
-        uint ccID = ProfileNFT.getProfileIdByHandle(handle);
+        ccID = ProfileNFT.getProfileIdByHandle(handle);
+        uint id = _userCounter.current();
 
         IGhostsData.User memory user = IGhostsData.User(
             msg.sender,
@@ -149,10 +172,11 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
             0, // contentPosts
             0, // ctfStbContribs
             ccID, // CyberConnect Profile ID
-            _userCounter.current() // Ghosts User ID
+            id // Ghosts User ID
         );
         userMap[msg.sender] = user;
-
+        idToUser[id] = user;
+        // userAwardFeats(1, 1, msg.sender, ccID);
         emit UserCreated(msg.sender, ccID);
     }
 
@@ -161,7 +185,6 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
         * @notice User profiles are created with zero values by choice for frontend purposes whereas tokenId starts from 1.
         * @notice User.raceId is only incremented after submitting which means 1st warmUp raceId = 0 balance = 1, after submit raceId = 1 && balance = 1.
      */
-     
     function startNextRace() external {
         require(userMap[msg.sender].userAddress != address(0) , "No User Account");
         IGhostsData.User memory user = userMap[msg.sender];
@@ -190,18 +213,18 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
         * @dev WarmUpNFT required. Pops current warmUpNFT from mapping + pushes tokenId to graduatedNFTs. Metadata will return RaceNFT JSON.
         * @notice User.raceId is incremented after a task has been submitted successfully.
         * @param answers of user total user submissions. The hash of the hashes of individual answers.
-        * @param metadata with additional info regarding user performances etc for CC.
+        * @param perf of user current submissions
      */
-    function submitCompletedTask(bytes32 answers, uint perf, string calldata metadata) external {
+    function submitCompletedTask(bytes32 answers, uint perf) external {
         IGhostsData.User storage user = userMap[msg.sender];
         require(user.userAddress != address(0) , "No User Account");
         require(balanceOf(msg.sender) != 0 , "cannot submit a task without the warmUp NFT");
-
 
         IGhostsData.WarmUpNFT memory warmUp = warmUpNFTs[msg.sender];
 
         IGhostsData.RaceNFT memory raceNFT = finalRaceNfts[warmUp.currentTaskId];
 
+        if(raceNFT.submittedAnswers == answers) revert AlreadySubmitted(warmUp.currentTaskId);
         warmUp.submittedAnswers = answers;
 
         if(answers != raceNFT.answer) {
@@ -228,7 +251,9 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
             });
 
             raceNFTs[msg.sender] = completedNFT;
-            _ccSetMetadata(user.ccID, metadata);
+            delete completedNFT;
+            delete raceNFT;
+            delete warmUp;
         }
     }
 
@@ -251,9 +276,18 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
     }
 
 
-    function _baseURI() internal view override returns (string memory) {
+    function _baseURI() internal override view returns (string memory) {
         return tokenBaseURI;
     }
+
+    function ccSubscribe(
+        DataTypes.SubscribeParams calldata params,
+        bytes[] calldata pre,
+        bytes[] calldata post
+    ) external onlyOwner {
+        ccProfileNFT.subscribe(params, pre, post);
+    }
+
 
 
 
@@ -287,5 +321,14 @@ contract Ghosts is GhostsFeats, ERC721, ERC721Enumerable, ERC721Burnable, Ownabl
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
     }
 }

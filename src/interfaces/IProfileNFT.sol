@@ -191,7 +191,6 @@ interface IProfileNFTEvents {
     );
 }
 
-
 library DataTypes {
     struct EIP712Signature {
         uint8 v;
@@ -232,7 +231,6 @@ library DataTypes {
     }
 
     struct SubscribeParams {
-        address subscriber;
         uint256[] profileIds;
     }
 

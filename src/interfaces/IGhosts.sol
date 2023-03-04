@@ -30,6 +30,31 @@ interface IGhostsData {
         uint tokenId;
         address userAddress;
     }
+
+    struct Feat {
+        bytes name; // feat name
+        bytes desc; // description of feat
+        bytes imageUrl; // imgUrl of image of feat
+        uint256 weight; // low = 10, med = 50, high = 100
+        uint256 essId; // Essence NFT ID
+        uint16 essTier; // Essence Index of Tier
+        uint earnedAt; // earned at timestamp
+    }
+
+    struct ProtocolFeats {
+        uint256 featID; // feat ID - mapped to featsMasterList
+    }
+
+    struct UserFeats {
+        address userAddress; // user address
+        uint256 ccID; // CyberConnect ID
+        uint followCount; // number of users following this user
+        uint followerCount; // number of users this user is following
+        uint commentCount; // number of comments this user has made
+        uint consumeCount; // number of pieces of content consumed
+        uint createCount; // number of pieces of content created
+        Feat[] feats; // list of owned feats
+    }
 }
 interface IGhosts {    
 
