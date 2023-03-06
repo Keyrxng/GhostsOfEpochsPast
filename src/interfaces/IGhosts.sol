@@ -53,11 +53,24 @@ interface IGhostsData {
         uint commentCount; // number of comments this user has made
         uint consumeCount; // number of pieces of content consumed
         uint createCount; // number of pieces of content created
+        uint[] followers;
+        uint[] following;
+    }
+
+    struct MiniPost{
+        address creator;
+        uint creatorCCID;
+        uint postId;
+        uint likes;
+        uint dislikes;
+        bool allowComments;
+        string uri;
+        bytes[] comments;
     }
 }
 interface IGhosts {    
 
-        function createUser(string memory handle, string[] memory hashes) external;
+        function createUser(string memory handle, string[] memory hashes) external returns(uint);
         function startNextRace() external;
         function submitCompletedTask(bytes32 answers, uint perf, string calldata metadata) external;
         function getGhostsProfile(address who) external returns(IGhostsData.User memory);
