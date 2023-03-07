@@ -5,6 +5,7 @@ interface IGhostsData {
     struct User {
         address userAddress; // user address
         uint raceId; // the race they are currently on
+        uint collabId; // the collab they are currently on
         uint completedTasks; // completed tasks
         uint performance; // a percentage based on previous task performance
         uint spotTheBugs; // completed spot the bugs tasks
@@ -28,6 +29,17 @@ interface IGhostsData {
         uint performance; // performance of the user out of 100
         uint currentTaskId; 
         uint tokenId;
+        address userAddress;
+    }
+
+    struct CollabNFT {
+        bytes author; 
+        bytes title; 
+        bytes32[] answers;
+        uint collabID;
+        uint tokenID;
+        uint currentId;
+        bool completed;
         address userAddress;
     }
 

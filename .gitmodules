@@ -12,3 +12,6 @@
 [submodule "lib/cyberconnect"]
 	path = lib/cyberconnect
 	url = https://github.com/cyberconnecthq/cybercontracts.git
+[submodule "lib/@openzeppelin-upgradeable"]
+	path = lib/@openzeppelin-upgradeable
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git
