@@ -14,23 +14,26 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     Counters.Counter private _tokenIdCounter;
     Counters.Counter public _userCounter;
 
+    uint raceCount;
+
     struct User {
         address userAddress; // user address
         uint raceId; // the race they are currently on
         uint completedTasks; // completed tasks
         uint performance; // a percentage based on previous task performance
-        bytes32 nickname; // user alias
-        bytes32 title; // user job title or other
-        bytes32 handle; // user social handle
+        uint stbPoints; // spot-the-bug points
+        string nickname; // user alias
+        string handle; // user social handle
         string bio; // user bio
+        string uri; // avatar
     }
 
     struct WarmUpNFT {
         address userAddress; // user address
         uint currentTaskId; // current task ID
         uint tokenId; // token ID
-        bytes32 submittedAnswers; // submitted answers by the user      
-}
+        bytes32 submittedAnswers; // submitted answers by the user
+    }
 
     struct RaceNFT {
         bytes32 submittedAnswers; // submitted answers by the user
@@ -41,27 +44,30 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         address userAddress; // user address
     }
 
-    mapping(address=>User) public userMap;
+    mapping(address => User) public userMap;
 
-    mapping(address=>WarmUpNFT) private warmUpNFTs; // used to assign WarmUp to User easily 
-    mapping(address=>RaceNFT) private raceNFTs; // used to assign RaceNFT to User easily
+    mapping(address => WarmUpNFT) private warmUpNFTs; // used to assign WarmUp to User easily
+    mapping(address => RaceNFT) private raceNFTs; // used to assign RaceNFT to User easily
 
-    mapping(uint=>RaceNFT) private finalRaceNfts; // stores what a final race nft should look like
+    mapping(uint => RaceNFT) private finalRaceNfts; // stores what a final race nft should look like
 
-    mapping(uint=>address) public nftMap; // tracks which nft belongs to which user
-    mapping(uint=>bool) private graduatedNFTs; // stores if a warmup has graduated used in tokenURI 
-    mapping(uint=>uint) private tokenIdToRaceId; // tracks which token belongs to which race used in tokenURI
+    mapping(uint => address) public nftMap; // tracks which nft belongs to which user
+    mapping(uint => bool) private graduatedNFTs; // stores if a warmup has graduated used in tokenURI
+    mapping(uint => uint) private tokenIdToRaceId; // tracks which token belongs to which race used in tokenURI
 
-    User[] public users; // allows the users to be iterated over 
+    User[] public users; // allows the users to be iterated over
 
     error IncorrectSubmission();
     event UserCreated(address indexed who, uint indexed id);
 
-    constructor(bytes32[] memory dunno) ERC721("GhostsOfEpochsPast", "Ghosts") payable {
+    constructor(
+        bytes32[] memory dunno
+    ) payable ERC721("GhostsOfEpochsPast", "Ghosts") {
         uint len = dunno.length;
-        for(uint x = 0; x < len; x++){
+        raceCount = len;
+        for (uint x = 0; x < len; x++) {
             finalRaceNfts[x] = RaceNFT({
-                submittedAnswers: bytes32('0x'),
+                submittedAnswers: bytes32("0x"),
                 answer: dunno[x],
                 performance: 0,
                 currentTaskId: x,
@@ -72,16 +78,16 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     }
 
     /**
-        * @dev Adds new races to the current selection of races.
-        * @param races is the accumulative hash of all the race questions.
-        * @param length is the current amount of races
+     * @dev Adds new races to the current selection of races.
+     * @param races is the accumulative hash of all the race questions.
      */
-    function addRaces(bytes32[] memory races, uint length) external onlyOwner {
+    function addRaces(bytes32[] memory races, uint) external onlyOwner {
         uint len = races.length - 1;
-        uint newlen = length + len;
-        for(uint x = length;newlen > len; --x){
+        uint newLen = raceCount + len;
+
+        for (uint x = len; newLen > len; x++) {
             finalRaceNfts[x] = RaceNFT({
-                submittedAnswers: bytes32('0x'),
+                submittedAnswers: bytes32("0x"),
                 answer: races[x],
                 performance: 0,
                 currentTaskId: x,
@@ -91,14 +97,14 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         }
     }
 
-    function _baseURI() internal override pure returns (string memory) {
-        return 'ipfs://QmPKJEfJpDmBTYjCWzQeRfrUqTJfW9bCgZWNyo93VCFVEK/';
+    function _baseURI() internal pure override returns (string memory) {
+        return "ipfs://QmWAKTCFXfzgRoJwjneynYArk5Yqd1TwE8mV3uwCRrHwkE/";
     }
 
     /**
-        * @dev Returns the URI for a token.
-        * @notice Ensures the tokenID belongs to a race and if so checks if they have graduated that race or not
-        * @param id is the tokenID of the Ghost-NFT
+     * @dev Returns the URI for a token.
+     * @notice Ensures the tokenID belongs to a race and if so checks if they have graduated that race or not
+     * @param id is the tokenID of the Ghost-NFT
      */
     function tokenURI(uint id) public view override returns (string memory) {
         require(_exists(id), "ERC721Metadata: URI query for nonexistent token");
@@ -106,34 +112,46 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
 
         tokenRaceId++;
 
-        if(!graduatedNFTs[id]){
-            return string(abi.encodePacked(_baseURI(), "WarmUpNFT", tokenRaceId.toString(), ".json"));
-        }else{
-            return string(abi.encodePacked(_baseURI(), "RaceNFT", tokenRaceId.toString(), ".json"));
+        if (!graduatedNFTs[id]) {
+            return
+                string(
+                    abi.encodePacked(
+                        _baseURI(),
+                        "WarmUpNFT",
+                        tokenRaceId.toString(),
+                        ".json"
+                    )
+                );
+        } else {
+            return
+                string(
+                    abi.encodePacked(
+                        _baseURI(),
+                        "RaceNFT",
+                        tokenRaceId.toString(),
+                        ".json"
+                    )
+                );
         }
     }
 
     /**
-        * @dev Creates a Ghost user profile in order to compete
-        * @param name is the user's publicly used alias
-        * @param bio is the user's publicly displayed bio
-        * @param title is the user's job title or other
-        * @param handle is the user's social handle
+     * @dev Creates a Ghost user profile in order to compete
+     * @param name is the user's publicly used alias
+     * @param bio is the user's publicly displayed bio
+     * @param handle is the user's social handle
+     * @param uri is the avatar ipfs hash
      */
-    function createUser(bytes32 name, string memory bio, bytes32 title, bytes32 handle) public {
+    function createUser(
+        string calldata name,
+        string calldata bio,
+        string calldata handle,
+        string calldata uri
+    ) public {
         uint id = _userCounter.current();
         _userCounter.increment();
 
-        User memory user = User(
-            msg.sender,
-            0,
-            0,
-            0,
-            name,
-            title,
-            handle,
-            bio
-        );
+        User memory user = User(msg.sender, 0, 0, 0, 0, name, handle, bio, uri);
 
         users.push(user);
         userMap[msg.sender] = user;
@@ -142,72 +160,100 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     }
 
     /**
-        * @dev Allows a user to edit their profile details
-        * @param name is the user's publicly used alias
-        * @param bio is the user's publicly displayed bio
-        * @param title is the user's job title or other
-        * @param handle is the user's social handle
+     * @dev Allows a user to edit their profile details
+     * @param name is the user's publicly used alias
+     * @param bio is the user's publicly displayed bio
+     * @param handle is the user's social handle
+     * @param uri is the avatar ipfs hash
      */
-    function editUser(bytes32 name, string memory bio, bytes32 title, bytes32 handle) external {
-        if(userMap[msg.sender].userAddress == address(0)){
-            createUser(name, bio, title, handle);
+    function editUser(
+        string calldata name,
+        string calldata bio,
+        string calldata handle,
+        string calldata uri
+    ) external {
+        if (userMap[msg.sender].userAddress == address(0)) {
+            createUser(name, bio, handle, uri);
         }
 
         User storage user = userMap[msg.sender];
 
-        if(name != user.nickname){
+        if (
+            keccak256(abi.encodePacked(name)) !=
+            keccak256(abi.encodePacked(name))
+        ) {
             user.nickname = name;
         }
-        if(keccak256(abi.encodePacked(bio)) != keccak256(abi.encodePacked(user.bio))) {
+        if (
+            keccak256(abi.encodePacked(bio)) !=
+            keccak256(abi.encodePacked(user.bio))
+        ) {
             user.bio = bio;
         }
-        if(title != user.title) {
-            user.title = title;
-        }
-        if(handle != user.handle) {
+        if (
+            keccak256(abi.encodePacked(handle)) !=
+            keccak256(abi.encodePacked(user.handle))
+        ) {
             user.handle = handle;
+        }
+        if (
+            keccak256(abi.encodePacked(uri)) !=
+            keccak256(abi.encodePacked(user.uri))
+        ) {
+            user.uri = uri;
         }
     }
 
     /**
-        * @dev Allows a registered user to begin their next race
-        * @notice A User's current raceID prevents them from minting another if balanceOf() != raceID
-        * @notice if a user has no NFT balance, we mint their first WarmUpNFT
+     * @dev Allows a registered user to begin their next race
+     * @notice A User's current raceID prevents them from minting another if balanceOf() != raceID
+     * @notice if a user has no NFT balance, we mint their first WarmUpNFT
      */
     function startNextRace() external {
-        require(userMap[msg.sender].userAddress != address(0) , "No User Account");
-        require(msg.sender == userMap[msg.sender].userAddress, "Not your account");
+        require(
+            userMap[msg.sender].userAddress != address(0),
+            "No User Account"
+        );
+        require(
+            msg.sender == userMap[msg.sender].userAddress,
+            "Not your account"
+        );
         User memory user = userMap[msg.sender];
         uint currentRace = user.raceId;
         uint nextId = (_tokenIdCounter.current() + 1);
         WarmUpNFT memory warmUp = WarmUpNFT({
             userAddress: msg.sender,
             currentTaskId: currentRace,
-            submittedAnswers: bytes32('0x'),
+            submittedAnswers: bytes32("0x"),
             tokenId: nextId
         });
         warmUpNFTs[msg.sender] = warmUp;
         tokenIdToRaceId[nextId] = currentRace;
 
-        if(balanceOf(msg.sender) == 0){
-            safeMint(msg.sender);    
-        }else{
-            require(balanceOf(msg.sender) == user.raceId, "Finish your active race first.");
+        if (balanceOf(msg.sender) == 0) {
+            safeMint(msg.sender);
+        } else {
+            require(
+                balanceOf(msg.sender) == user.raceId,
+                "Finish your active race first."
+            );
             safeMint(msg.sender);
         }
     }
 
     /**
-        * @dev Allows a User to submit their answers.
-        * @notice The final hashes are compared to the answer and performance is calculated
-        * @param answers are the User's answers submitted as a hash
-        * @param perf is the percentage of questions the User got correct        
+     * @dev Allows a User to submit their answers.
+     * @notice The final hashes are compared to the answer and performance is calculated
+     * @param answers are the User's answers submitted as a hash
+     * @param perf is the percentage of questions the User got correct
      */
     function submitCompletedTask(bytes32 answers, uint perf) external {
         User storage user = userMap[msg.sender];
-        require(user.userAddress != address(0) , "No User Account");
-        require(balanceOf(msg.sender) != 0 , "cannot submit a task without the warmUp NFT");
-
+        require(user.userAddress != address(0), "No User Account");
+        require(
+            balanceOf(msg.sender) != 0,
+            "cannot submit a task without the warmUp NFT"
+        );
 
         WarmUpNFT memory warmUp = warmUpNFTs[msg.sender];
 
@@ -215,18 +261,20 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
 
         warmUp.submittedAnswers = answers;
 
-        if(answers != raceNFT.answer) {
+        if (answers != raceNFT.answer) {
             revert IncorrectSubmission();
-        }else{
+        } else {
             delete warmUpNFTs[msg.sender];
             graduatedNFTs[warmUp.tokenId] = true;
             user.raceId += 1;
             user.completedTasks++;
 
-            uint currentPerformance = user.performance;
-            uint newPerformance = (currentPerformance + perf) / user.completedTasks;
-            user.performance = newPerformance;
+            uint currentPerformance = user.performance *
+                (user.completedTasks - 1);
+            uint newPerformance = (currentPerformance + perf) /
+                user.completedTasks;
 
+            user.performance = newPerformance;
             RaceNFT memory completedNFT = RaceNFT({
                 submittedAnswers: answers,
                 answer: answers,
@@ -241,9 +289,16 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
     }
 
     /**
-        * @dev Allows owner to mint warmUp NFTs
-        * @notice Another mint is not needed as the NFT uri is dynamic
-        * @param to is the User
+     * @notice cba writing the logic for it rn so will make a module later once bot is complete
+     */
+    function setUserSTBPoints(address who) external onlyOwner {
+        User storage user = userMap[who];
+        user.stbPoints += 1;
+    }
+
+    /**
+     * @notice Another mint is not needed as the NFT uri is dynamic
+     * @param to is the User
      */
     function safeMint(address to) internal {
         _tokenIdCounter.increment();
@@ -251,28 +306,37 @@ contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
         nftMap[tokenId] = to;
         _safeMint(to, tokenId);
     }
-    
+
     // The following functions are overrides required by Solidity.
     // soulbound
-    function transferFrom(address,address,uint256) public pure override(ERC721, IERC721) {
+    function transferFrom(
+        address,
+        address,
+        uint256
+    ) public pure override(ERC721, IERC721) {
         return;
     }
-    function safeTransferFrom(address,address,uint256) public pure override(ERC721, IERC721) {
+
+    function safeTransferFrom(
+        address,
+        address,
+        uint256
+    ) public pure override(ERC721, IERC721) {
         return;
     }
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        override(ERC721, ERC721Enumerable)
-    {
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721, ERC721Enumerable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721, ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }
