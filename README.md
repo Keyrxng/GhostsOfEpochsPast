@@ -1,23 +1,23 @@
-# Ghosts Of Epochs Past (beta)
+# Ghosts Of Epochs Past
 
 ## Demographic
 
 The demographic of this dApp is primarily being aimed at newbies in blockchain/EVM related security research, looking to improve and refresh their knowledge.
 
-## Problem This Solves
+## Solution Description
 
-Accessing the Secureum and other security related materials that aren't yet in this build is all free of charge in the discord server, however, the answers are exposed and the burden of proof is on the students to ensure that they are engaged, completing the challenge and obtaining the prize of knowledge. This provides little mental stimuli and incentive to hide the answers (even still, you've seen them now) and test yourself. This is where we come in, with *Ghosts Of Epochs Past*, a dApp which attempts to provide more incentice to learn from previous epochs as opposed to *scannning the answers* for a test you haven't done yet.
+Accessing the Secureum and other security related materials that aren't yet in this build is all free of charge in the discord server, however, the answers are exposed and the burden of proof is on the students to ensure that they are engaged, completing the challenge and obtaining the prize of knowledge. This provides little mental stimuli and incentive to hide the answers (even still, you've seen them now) and test yourself. This is where we come in, with *Ghosts Of Epochs Past*, a dApp which attempts to provide more incentive to learn from previous epochs as opposed to *scannning the answers* for a test you haven't done yet.
 
 ## How We Solve It?
 
-[GhostsOfEpochsPast](https://ghostsofepochspast.com/) is a place to study and revise previous race epochs provided by [Secureum](https://secureum.xyz/), a community of like minded crypto enthusiasts with a focus on **Ethereum**, **Solidity** and **Smart Contract Security**. There is no time limit unlike the real races (which you, fellow security researcher should be aiming to apply to participate in once you complete these stress free revisions). Your answers are hashed and verified on-chain, yes we are aware there are ways to cheat but that defeats the purpose. You should be old enough and resourceful enough to effectively learn from this material and not need to rely on shortcuts to "win", as you'll never place in C4 with that attitude.
+[GhostsOfEpochsPast](https://ghostsofepochspast.xyz/) is a place to study and revise previous race epochs provided by [Secureum](https://secureum.xyz/), a community of like minded crypto enthusiasts with a focus on **Ethereum**, **Solidity** and **Smart Contract Security**. There is no time limit unlike the real races (which you, fellow security researcher should be aiming to apply to participate in once you complete these stress free revisions). Your answers are hashed and verified on-chain, yes we are aware there are ways to cheat but that defeats the purpose. You should be old enough and resourceful enough to effectively learn from this material and not need to rely on shortcuts to "win", as you'll never place in C4 with that attitude.
 
 ## How To Get Started?
 
 * Create a user profile consisting of your alias, job title, bio and a social handle of choice.
-* Go to the first race (technically it's race 4 as secureum released their content from this epoch forward) but we know it as race 1.
+* Go to the first race (technically it's race 4 as secureum released their content from this epoch forward).
 * Mint your WarmUp NFT. This allows you access to attempt to complete the race with the correct answers.
-* Pick your answers and then **Off-chain Submit** them which will generate your results but they will be hidden until revealed.
+* Pick your answers and then **Off-chain Submit** them which will generate your results immediately.
 * If you are brave you can **On-chain Submit** at this point, it will only ask you to sign a transaction if you got them all correct.
 * If you are not feeling so brave, you can review your results and correct your mistakes before submitting correctly.
 * Your WarmUp NFT has just been upgraded to a RaceNFT which signifies you have completed that specific race.
@@ -29,9 +29,9 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 
 ## What's Next?
 
-### Some key features we plan to add if we receive good feedback from the community:
+### Key features we plan to add depending on the feedback from the community:
 
-* The addition of all public Secureum race epochs, not just the four for the beta.
+* The ongoing addition of the newly released public Secureum race epochs.
 * The addition of other 3rd party quiz and learning content from niche specific DAO's and creators.
 * Increase the *'socialness'* of the UX and UI by introducing a social graph, user follows and user feed (i.e seeing other user profiles, recent completed races/challenges by those a user follows in the form of a feed) and maybe even some ranking system.
 * The addition of a blockchain security research focused blog/content section.
@@ -74,6 +74,8 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 * Beta Release: Feb 8th 2023
 * Alchemy Submission: Feb 9th/10th/11th 2023
 * CyberConnect Hackathon Registration: Feb 9th 2023
+* [Project on Dorahacks](https://dorahacks.io/buidl/4422#vision)  You can upvote here!
+* [Link3 Profile](https://link3.to/8UCLJFQF)  
 
 # Technical Roadmap
 
@@ -90,7 +92,6 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 * * * Rank System
 * * * Achievements
 * * * Security Blog Content
-* * * More??
 
 
 ## Implementation
@@ -131,17 +132,7 @@ It's unique in that it is a *FREE* learning platform purely built to help newbie
 16. #### Implement "Feed" social feature.
 17. #### Implement "Security Calendar" social feature.
 
-## Active Pages:
-
-* **home** www.url.com || /pages/index.js
-
-* **dashboard** www.url.com/dashboard || /pages/dashboard/index.js
-
-* **Profile** www.url.com/dashboard/profile || /pages/dashboard/profile.js
-
-* **[raceId]** www.url.com/dashboard/races/[raceId] || /pages/dashboard/races/[raceId].js
-
-
 <br/>
+
 
 * * *
