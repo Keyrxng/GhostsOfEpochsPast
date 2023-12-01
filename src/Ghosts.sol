@@ -1,269 +1,342 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.9;
 
-import {GhostsFeats} from './GhostsFeats.sol';
-import "./library/GhostsLib.sol";
-
-import "@openzeppelin-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import "@openzeppelin-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import "@openzeppelin-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-
+import "@openzeppelin/token/ERC721/ERC721.sol";
+import "@openzeppelin/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/token/ERC721/extensions/ERC721Burnable.sol";
+import "@openzeppelin/access/Ownable.sol";
+import "@openzeppelin/utils/Counters.sol";
 import "@openzeppelin/utils/Strings.sol";
-import "@openzeppelin/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/proxy/ERC1967/ERC1967Proxy.sol";
 
-contract UUPSProxy is ERC1967Proxy {
-    constructor(address _implementation, bytes memory _data)
-        ERC1967Proxy(_implementation, _data)
-    {}
-}
-
-contract Ghosts is 
-    GhostsFeats,
-    Initializable, 
-    ERC721Upgradeable, 
-    ERC721EnumerableUpgradeable,
-    UUPSUpgradeable
-    {
+contract Ghosts is ERC721, ERC721Enumerable, ERC721Burnable, Ownable {
+    using Counters for Counters.Counter;
     using Strings for uint256;
+    Counters.Counter private _tokenIdCounter;
+    Counters.Counter public _userCounter;
 
-    constructor() {
-        _disableInitializers();
+    uint raceCount;
+
+    struct User {
+        address userAddress; // user address
+        uint raceId; // the race they are currently on
+        uint completedTasks; // completed tasks
+        uint performance; // a percentage based on previous task performance
+        uint stbPoints; // spot-the-bug points
+        string nickname; // user alias
+        string handle; // user social handle
+        string bio; // user bio
+        string uri; // avatar
+    }
+
+    struct WarmUpNFT {
+        address userAddress; // user address
+        uint currentTaskId; // current task ID
+        uint tokenId; // token ID
+        bytes32 submittedAnswers; // submitted answers by the user
+    }
+
+    struct RaceNFT {
+        bytes32 submittedAnswers; // submitted answers by the user
+        bytes32 answer; // correct answer to the task
+        uint performance; // performance of the user out of 100
+        uint currentTaskId; // current task id
+        uint tokenId; // token ID
+        address userAddress; // user address
+    }
+
+    mapping(address => User) public userMap;
+
+    mapping(address => WarmUpNFT) private warmUpNFTs; // used to assign WarmUp to User easily
+    mapping(address => RaceNFT) private raceNFTs; // used to assign RaceNFT to User easily
+
+    mapping(uint => RaceNFT) private finalRaceNfts; // stores what a final race nft should look like
+
+    mapping(uint => address) public nftMap; // tracks which nft belongs to which user
+    mapping(uint => bool) private graduatedNFTs; // stores if a warmup has graduated used in tokenURI
+    mapping(uint => uint) private tokenIdToRaceId; // tracks which token belongs to which race used in tokenURI
+
+    User[] public users; // allows the users to be iterated over
+
+    error IncorrectSubmission();
+    event UserCreated(address indexed who, uint indexed id);
+
+    constructor(
+        bytes32[] memory dunno
+    ) payable ERC721("GhostsOfEpochsPast", "Ghosts") {
+        uint len = dunno.length;
+        raceCount = len;
+        for (uint x = 0; x < len; x++) {
+            finalRaceNfts[x] = RaceNFT({
+                submittedAnswers: bytes32("0x"),
+                answer: dunno[x],
+                performance: 0,
+                currentTaskId: x,
+                tokenId: x,
+                userAddress: address(0)
+            });
+        }
     }
 
     /**
-        * @dev hashes are imprinted into finalRaceNFTs for comparison for submissions.
-        * @param dunno bytes32[] of hashes for the initial round of race content.
+     * @dev Adds new races to the current selection of races.
+     * @param races is the accumulative hash of all the race questions.
      */
-    function initialize(bytes32[] memory dunno, string memory uri) initializer public {
-        __ERC721_init("TESTTEST", "TST");
-        __ERC721Enumerable_init();
-        __UUPSUpgradeable_init();
+    function addRaces(bytes32[] memory races, uint) external onlyOwner {
+        uint len = races.length - 1;
+        uint newLen = raceCount + len;
 
-        ghostsAddr = address(this);
-        deployer = msg.sender;
-
-        uint8 len = uint8(dunno.length);
-        protocolMeta.raceCount = len;
-        unchecked {
-            for(uint32 x = 0; x < len; x++){
-                GhostsLib.RaceNFT memory nft;
-                    nft.submittedAnswers = bytes32('0x');
-                    nft.answer = dunno[x];
-                    nft.userAddress = address(0);
-                    nft.tokenID = x;
-                    nft.raceID = uint8(x);
-                    nft.completed = false;
-                finalRaceNFTs[x] = x;
-                delete nft;
-            }
+        for (uint x = len; newLen > len; x++) {
+            finalRaceNfts[x] = RaceNFT({
+                submittedAnswers: bytes32("0x"),
+                answer: races[x],
+                performance: 0,
+                currentTaskId: x,
+                tokenId: x,
+                userAddress: address(0)
+            });
         }
-        protocolMeta.uri = uri;
     }
 
-    function addRace(bytes32 race) external {
-        GhostsLib.onlyGhosts(msg.sender, msg.sender);
-
-        uint len = allRaceNFTs.length;
-
-        GhostsLib.RaceNFT memory nft = GhostsLib.RaceNFT({
-            submittedAnswers: bytes32('0x'),
-            answer: race,
-            userAddress: address(0),
-            tokenID: 0,
-            raceID: protocolMeta.raceCount,
-            completed: false
-        });
-
-        finalRaceNFTs[len] = len;
-
-        protocolMeta.raceCount++;
-
-        addrToUser[deployer].ctfStbContribs++;
+    function _baseURI() internal pure override returns (string memory) {
+        return "ipfs://QmWAKTCFXfzgRoJwjneynYArk5Yqd1TwE8mV3uwCRrHwkE/";
     }
 
-    function addCollab(bytes32[] calldata collab, bytes32 author, bytes32 title, address authAddr) external {
-        GhostsLib.onlyGhosts(msg.sender, msg.sender);
-
-        uint8 r = protocolMeta.collabCount == 0 ? 1 : protocolMeta.collabCount++;
-
-        GhostsLib.CollabNFT memory nft = GhostsLib.CollabNFT({
-            author: author,
-            title: title,
-            answers: collab,
-            userAddress: address(0),
-            tokenID: protocolMeta.tokenCount + 1,
-            collabID: r,
-            completed: false        
-        });
-
-        collabNFTs[r] = r;
-
-        protocolMeta.tokenCount++;
-        protocolMeta.collabCount++;
-        addrToUser[authAddr].ctfStbContribs++;
-        allCollabNFTs.push(nft);
-
-        delete nft;
-    }
-
-
-    function createUser(address who, string memory handle, string[] calldata hashes, uint32 userCount) external returns(bool, uint id) {
-        id = _createUser(who, handle, hashes, userCount);
-        assert(id != 0);
-        return (true, id);
-    }
-
-    function createFeats(
-        bytes32 name,
-        bytes32 symbol,
-        bytes32 essenceURI,
-        bytes32 description,
-        uint64 weight,
-        uint64 essID,
-        uint64 essTier
-    ) external {
-        _createFeats(name, symbol, essenceURI, description, weight, essID, essTier);
-    }
-
-    function startNextRace() external {
-        _startNextRace();
-
-        safeMint(msg.sender);
-    }
-
-    function submitRace(bytes32 answers) external {
-        _submitRace(answers);
-    }
-
-    function startNextCollab(uint8 collabID) external {
-        _startNextCollab(collabID);
-        safeMint(msg.sender);
-    }
-
-    function submitCollab(bytes32[] calldata guesses, uint32 collabID) external {
-        _submitCollab(guesses, collabID);
-    }
-
-    function followUser(uint32 idToFollow, address addrToFollow) external {
-        GhostsLib.User memory user = addrToUser[msg.sender];
-        _followUser(idToFollow, user.ccID, addrToFollow);
-    }
-
-    function userAwardFeats(
-        uint16 featId,
-        uint16 tier,
-        address userAddr,
-        uint32 profileId
-    ) external {
-        _userAwardFeats(featId, tier, userAddr, profileId);
-    }
-
+    /**
+     * @dev Returns the URI for a token.
+     * @notice Ensures the tokenID belongs to a race and if so checks if they have graduated that race or not
+     * @param id is the tokenID of the Ghost-NFT
+     */
     function tokenURI(uint id) public view override returns (string memory) {
-        if(!_exists(id)){
-            revert GhostsLib.NoExists(id);
-        }
+        require(_exists(id), "ERC721Metadata: URI query for nonexistent token");
+        uint tokenRaceId = tokenIdToRaceId[id];
 
-        bool which = tokIdToType[id][1] != 0 ? true : false;
+        tokenRaceId++;
 
-        if(which){
-            uint idd = finalRaceNFTs[id];
-            if(idd != 0){
-                    return string(abi.encodePacked(_baseURI(), "RaceNFT", idd, ".json"));
-                }else{
-                    return string(abi.encodePacked(_baseURI(), "WarmUpNFT", idd, ".json"));
-                }
-        }else{
-            uint idd = collabNFTs[id];
-            if(idd != 0){
-                    return string(abi.encodePacked(_baseURI(), "CollabNFT", idd, ".json"));
-                }else{
-                    return string(abi.encodePacked(_baseURI(), "v0CollabNFT", idd, ".json"));
-                }
-            }
+        if (!graduatedNFTs[id]) {
+            return
+                string(
+                    abi.encodePacked(
+                        _baseURI(),
+                        "WarmUpNFT",
+                        tokenRaceId.toString(),
+                        ".json"
+                    )
+                );
+        } else {
+            return
+                string(
+                    abi.encodePacked(
+                        _baseURI(),
+                        "RaceNFT",
+                        tokenRaceId.toString(),
+                        ".json"
+                    )
+                );
         }
-    
-    function ccSubscribe(
-        DataTypes.SubscribeParams calldata params,
-        bytes[] calldata pre,
-        bytes[] calldata post
+    }
+
+    /**
+     * @dev Creates a Ghost user profile in order to compete
+     * @param name is the user's publicly used alias
+     * @param bio is the user's publicly displayed bio
+     * @param handle is the user's social handle
+     * @param uri is the avatar ipfs hash
+     */
+    function createUser(
+        string calldata name,
+        string calldata bio,
+        string calldata handle,
+        string calldata uri
+    ) public {
+        uint id = _userCounter.current();
+        _userCounter.increment();
+
+        User memory user = User(msg.sender, 0, 0, 0, 0, name, handle, bio, uri);
+
+        users.push(user);
+        userMap[msg.sender] = user;
+
+        emit UserCreated(msg.sender, id);
+    }
+
+    /**
+     * @dev Allows a user to edit their profile details
+     * @param name is the user's publicly used alias
+     * @param bio is the user's publicly displayed bio
+     * @param handle is the user's social handle
+     * @param uri is the avatar ipfs hash
+     */
+    function editUser(
+        string calldata name,
+        string calldata bio,
+        string calldata handle,
+        string calldata uri
     ) external {
-        GhostsLib.onlyGhosts(msg.sender, msg.sender);
-        GhostsLib.ccProfileNFT.subscribe(params, pre, post);
+        if (userMap[msg.sender].userAddress == address(0)) {
+            createUser(name, bio, handle, uri);
+        }
+
+        User storage user = userMap[msg.sender];
+
+        if (
+            keccak256(abi.encodePacked(name)) !=
+            keccak256(abi.encodePacked(name))
+        ) {
+            user.nickname = name;
+        }
+        if (
+            keccak256(abi.encodePacked(bio)) !=
+            keccak256(abi.encodePacked(user.bio))
+        ) {
+            user.bio = bio;
+        }
+        if (
+            keccak256(abi.encodePacked(handle)) !=
+            keccak256(abi.encodePacked(user.handle))
+        ) {
+            user.handle = handle;
+        }
+        if (
+            keccak256(abi.encodePacked(uri)) !=
+            keccak256(abi.encodePacked(user.uri))
+        ) {
+            user.uri = uri;
+        }
     }
 
-    function setBaseURI(string calldata uri) external {
-        GhostsLib.onlyGhosts(msg.sender, msg.sender);
-        protocolMeta.uri = uri;
+    /**
+     * @dev Allows a registered user to begin their next race
+     * @notice A User's current raceID prevents them from minting another if balanceOf() != raceID
+     * @notice if a user has no NFT balance, we mint their first WarmUpNFT
+     */
+    function startNextRace() external {
+        require(
+            userMap[msg.sender].userAddress != address(0),
+            "No User Account"
+        );
+        require(
+            msg.sender == userMap[msg.sender].userAddress,
+            "Not your account"
+        );
+        User memory user = userMap[msg.sender];
+        uint currentRace = user.raceId;
+        uint nextId = (_tokenIdCounter.current() + 1);
+        WarmUpNFT memory warmUp = WarmUpNFT({
+            userAddress: msg.sender,
+            currentTaskId: currentRace,
+            submittedAnswers: bytes32("0x"),
+            tokenId: nextId
+        });
+        warmUpNFTs[msg.sender] = warmUp;
+        tokenIdToRaceId[nextId] = currentRace;
+
+        if (balanceOf(msg.sender) == 0) {
+            safeMint(msg.sender);
+        } else {
+            require(
+                balanceOf(msg.sender) == user.raceId,
+                "Finish your active race first."
+            );
+            safeMint(msg.sender);
+        }
     }
 
-    function _authorizeUpgrade(address /**/)
-        internal
-        view
-        override
-    {
-        GhostsLib.onlyGhosts(msg.sender, msg.sender);
+    /**
+     * @dev Allows a User to submit their answers.
+     * @notice The final hashes are compared to the answer and performance is calculated
+     * @param answers are the User's answers submitted as a hash
+     * @param perf is the percentage of questions the User got correct
+     */
+    function submitCompletedTask(bytes32 answers, uint perf) external {
+        User storage user = userMap[msg.sender];
+        require(user.userAddress != address(0), "No User Account");
+        require(
+            balanceOf(msg.sender) != 0,
+            "cannot submit a task without the warmUp NFT"
+        );
+
+        WarmUpNFT memory warmUp = warmUpNFTs[msg.sender];
+
+        RaceNFT memory raceNFT = finalRaceNfts[warmUp.currentTaskId];
+
+        warmUp.submittedAnswers = answers;
+
+        if (answers != raceNFT.answer) {
+            revert IncorrectSubmission();
+        } else {
+            delete warmUpNFTs[msg.sender];
+            graduatedNFTs[warmUp.tokenId] = true;
+            user.raceId += 1;
+            user.completedTasks++;
+
+            uint currentPerformance = user.performance *
+                (user.completedTasks - 1);
+            uint newPerformance = (currentPerformance + perf) /
+                user.completedTasks;
+
+            user.performance = newPerformance;
+            RaceNFT memory completedNFT = RaceNFT({
+                submittedAnswers: answers,
+                answer: answers,
+                performance: perf,
+                currentTaskId: user.raceId,
+                tokenId: warmUp.tokenId,
+                userAddress: msg.sender
+            });
+
+            raceNFTs[msg.sender] = completedNFT;
+        }
     }
 
-    function getImplementation() external view returns (address) {
-        return _getImplementation();
+    /**
+     * @notice cba writing the logic for it rn so will make a module later once bot is complete
+     */
+    function setUserSTBPoints(address who) external onlyOwner {
+        User storage user = userMap[who];
+        user.stbPoints += 1;
     }
 
-
-    /////////////////////////////////
-    ///                           ///
-    ///     Internal Functions    ///
-    ///                           ///
-    /////////////////////////////////
-
-   
-    function _baseURI() internal override view returns (string memory) {
-        return protocolMeta.uri;
+    /**
+     * @notice Another mint is not needed as the NFT uri is dynamic
+     * @param to is the User
+     */
+    function safeMint(address to) internal {
+        _tokenIdCounter.increment();
+        uint256 tokenId = _tokenIdCounter.current();
+        nftMap[tokenId] = to;
+        _safeMint(to, tokenId);
     }
 
-    function safeMint(address who) internal returns(uint32 nidx) {
-        protocolMeta.tokenCount = protocolMeta.tokenCount + 1;
-        nidx = protocolMeta.tokenCount;
-        _safeMint(who, nidx);
-    }
-
-    /////////////////////////////////
-    ///                           ///
-    ///         Overrides         ///
-    ///                           ///
-    /////////////////////////////////
-
-    
     // The following functions are overrides required by Solidity.
-    function transferFrom(address,address,uint256) public pure override(ERC721Upgradeable, IERC721Upgradeable) {
-        revert GhostsLib.Soulbound();
+    // soulbound
+    function transferFrom(
+        address,
+        address,
+        uint256
+    ) public pure override(ERC721, IERC721) {
+        return;
     }
-    function safeTransferFrom(address,address,uint256) public pure override(ERC721Upgradeable, IERC721Upgradeable) {
-        revert GhostsLib.Soulbound();
+
+    function safeTransferFrom(
+        address,
+        address,
+        uint256
+    ) public pure override(ERC721, IERC721) {
+        return;
     }
-    function _beforeTokenTransfer(address from, address to, uint256 tokenId, uint256 batchSize)
-        internal
-        override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
-    {
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal override(ERC721, ERC721Enumerable) {
         super._beforeTokenTransfer(from, to, tokenId, batchSize);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(ERC721Upgradeable, ERC721EnumerableUpgradeable)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721, ERC721Enumerable) returns (bool) {
         return super.supportsInterface(interfaceId);
-    }
-
-    function onERC721Received(
-        address /**/,
-        address /**/,
-        uint256 /**/,
-        bytes calldata /**/
-    ) external pure returns (bytes4) {
-        return IERC721Receiver.onERC721Received.selector;
     }
 }
